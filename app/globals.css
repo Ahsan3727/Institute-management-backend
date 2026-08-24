@@ -101,3 +101,20 @@ body {
 .animate-sheet-up {
   animation: sheet-up 0.22s ease-out;
 }
+
+@media print {
+  body > *:not(#print-root) {
+    display: none !important;
+  }
+  #print-root {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  @page {
+    size: A5;
+    margin: 10mm;
+  }
+}
+

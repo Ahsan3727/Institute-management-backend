@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, UserCheck, Phone, DollarSign, KeyRound, ShieldAlert } from 'lucide-react';
+import { Plus, Pencil, Trash2, UserCheck, Phone, DollarSign, KeyRound, ShieldAlert, Award, BarChart2 } from 'lucide-react';
 import { useApp } from '@/state/AppContext';
 import { useToast } from '@/context/ToastContext';
+import { useNav } from '@/navigation/AppShell';
 import ScreenBody from '@/components/ScreenBody';
 import Card from '@/components/Card';
 import StatBox, { StatGrid } from '@/components/StatBox';
@@ -17,6 +18,7 @@ import Pill from '@/components/Pill';
 export default function AdminStudentsScreen() {
   const { data, addStudent, editStudent, deleteStudent, studentDependentCounts, nameExists } = useApp();
   const toast = useToast();
+  const nav = useNav();
 
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
@@ -169,6 +171,13 @@ export default function AdminStudentsScreen() {
                   ) : (
                     <Pill kind="absent" label="No Teacher Assigned" />
                   )}
+                  <button
+                    type="button"
+                    onClick={() => nav.navigate('Exams')}
+                    className="flex items-center gap-1 text-[11px] font-bold text-[var(--role-dark)] hover:underline ml-auto"
+                  >
+                    <Award size={11} /> Grade Card →
+                  </button>
                 </div>
               </div>
             );
