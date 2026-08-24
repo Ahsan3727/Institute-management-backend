@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #191c24;
+  --sub: #868c9b;
+  --line: #eaebf1;
+  --bg: #f3f4f9;
+  --paper: #ffffff;
+  --red: #e1464c;
+  --red-bg: #fceaec;
+  --amber: #e6960f;
+  --amber-bg: #fdf1dc;
+  --green: #0e8f52;
+  --green-bg: #e7f8ef;
+
+  --role: #6d3fd6;
+  --role-dark: #4c1fa8;
+  --role-bg: #f2edfc;
+}
+
+[data-theme='dark'] {
+  --ink: #eef0f6;
+  --sub: #8b90a0;
+  --line: #2a2d3a;
+  --bg: #12141c;
+  --paper: #1b1e29;
+  --red-bg: #3a1d20;
+  --amber-bg: #382a12;
+  --green-bg: #122a20;
+}
+
+[data-role='teacher'] {
+  --role: #6d3fd6;
+  --role-dark: #4c1fa8;
+  --role-bg: #f2edfc;
+}
+[data-role='parent'] {
+  --role: #2f6fe0;
+  --role-dark: #1f4fa8;
+  --role-bg: #eaf1fd;
+}
+[data-role='admin'] {
+  --role: #0e8f52;
+  --role-dark: #0a6b3e;
+  --role-bg: #e7f8ef;
+}
+
+[data-theme='dark'][data-role='teacher'] {
+  --role-bg: #241a3d;
+}
+[data-theme='dark'][data-role='parent'] {
+  --role-bg: #1a2440;
+}
+[data-theme='dark'][data-role='admin'] {
+  --role-bg: #122a20;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+.animate-toast-in {
+  animation: toast-in 0.18s ease-out;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.animate-sheet-up {
+  animation: sheet-up 0.22s ease-out;
+}
