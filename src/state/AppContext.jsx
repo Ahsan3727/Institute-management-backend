@@ -45,6 +45,7 @@ function normalizeData(d) {
       ...t,
     })),
     feePayments: d.feePayments || [],
+    feeSubmissions: d.feeSubmissions || [],
     salaryPayments: d.salaryPayments || [],
   };
 }
@@ -623,6 +624,94 @@ export function AppProvider({ children }) {
     [data, getStudentFeePaid, getTeacherSalaryPaid]
   );
 
+  // =========================================================
+  // ONLINE FEE SUBMISSIONS (Parent upload / Admin approval)
+  // =========================================================
+  const submitFeePaymentProof = useCallback(
+    ({ studentId, month, amount, paymentMethod, referenceId, date, note }) => {
+      const newSubmission = {
+        id: uid('subm'),
+        studentId,
+        month,
+        amount: Number(amount) || 0,
+        paymentMethod: paymentMethod || 'Bank Transfer',
+        referenceId: referenceId || '',
+        date: date || todayISO(),
+        note: note || '',
+        status: 'pending',
+        submittedAt: Date.now(),
+      };
+      setData((d) => ({
+        ...d,
+        feeSubmissions: [newSubmission, ...(d.feeSubmissions || [])],
+      }));
+      return newSubmission;
+    },
+    []
+  );
+
+  const approveFeeSubmission = useCallback((submissionId) => {
+    setData((d) => {
+      const sub = (d.feeSubmissions || []).find((s) => s.id === submissionId);
+      if (!sub) return d;
+      const updatedSubmissions = d.feeSubmissions.map((s) =>
+        s.id === submissionId ? { ...s, status: 'approved', reviewedAt: Date.now() } : s
+      );
+      const newFeePayment = {
+        id: uid('fee'),
+        studentId: sub.studentId,
+        month: sub.month,
+        amount: sub.amount,
+        date: sub.date,
+      };
+      return {
+        ...d,
+        feeSubmissions: updatedSubmissions,
+        feePayments: [...d.feePayments, newFeePayment],
+      };
+    });
+  }, []);
+
+  const rejectFeeSubmission = useCallback((submissionId, reason = '') => {
+    setData((d) => ({
+      ...d,
+      feeSubmissions: (d.feeSubmissions || []).map((s) =>
+        s.id === submissionId ? { ...s, status: 'rejected', rejectionReason: reason, reviewedAt: Date.now() } : s
+      ),
+    }));
+  }, []);
+
+  const getStudentFeeHistory = useCallback(
+    (studentId, numMonths = 6) => {
+      const student = data.students.find((s) => s.id === studentId);
+      if (!student) return [];
+      const fee = student.tuitionFee || 0;
+      const history = [];
+      const now = new Date();
+      for (let i = 0; i < numMonths; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const m = d.toISOString().slice(0, 7);
+        const paid = getStudentFeePaid(studentId, m);
+        let status = 'pending';
+        if (fee === 0) status = 'n/a';
+        else if (paid >= fee) status = 'paid';
+        else if (paid > 0) status = 'partial';
+        const submissions = (data.feeSubmissions || []).filter((s) => s.studentId === studentId && s.month === m);
+        history.push({
+          month: m,
+          monthLabel: d.toLocaleDateString(undefined, { year: 'numeric', month: 'long' }),
+          fee,
+          paid,
+          remaining: Math.max(0, fee - paid),
+          status,
+          submissions,
+        });
+      }
+      return history;
+    },
+    [data, getStudentFeePaid]
+  );
+
   const buildFinanceSummaryText = useCallback(
     (month) => {
       const s = getFinanceSummary(month);
@@ -814,6 +903,10 @@ export function AppProvider({ children }) {
       getSalaryRows,
       getFinanceSummary,
       buildFinanceSummaryText,
+      submitFeePaymentProof,
+      approveFeeSubmission,
+      rejectFeeSubmission,
+      getStudentFeeHistory,
       last7DaysCounts,
       computeMissedSlos,
       getNotifications,
@@ -870,6 +963,10 @@ export function AppProvider({ children }) {
       getSalaryRows,
       getFinanceSummary,
       buildFinanceSummaryText,
+      submitFeePaymentProof,
+      approveFeeSubmission,
+      rejectFeeSubmission,
+      getStudentFeeHistory,
       last7DaysCounts,
       computeMissedSlos,
       getNotifications,

@@ -74,6 +74,47 @@ export default function ParentDashboard() {
         <StatBox value={attendance.filter((a) => a.status === 'absent').length} label="Absences" colorClass="text-[var(--red)]" />
       </StatGrid>
 
+      {/* Quick Tuition Fee Status Card */}
+      {(() => {
+        const thisMonth = new Date().toISOString().slice(0, 7);
+        const thisMonthLabel = new Date(thisMonth + '-01T00:00:00').toLocaleDateString(undefined, { month: 'long' });
+        const fee = student.tuitionFee || 0;
+        const paid = (data.feePayments || [])
+          .filter((f) => f.studentId === student.id && f.month === thisMonth)
+          .reduce((sum, f) => sum + f.amount, 0);
+        const status = fee === 0 ? 'n/a' : paid >= fee ? 'paid' : paid > 0 ? 'partial' : 'pending';
+        const pendingSub = (data.feeSubmissions || []).find((s) => s.studentId === student.id && s.month === thisMonth && s.status === 'pending');
+        
+        return (
+          <div className="mb-4 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-[14px]">💳</span>
+                <p className="text-[13px] font-bold text-[var(--ink)]">{thisMonthLabel} Tuition Fee</p>
+              </div>
+              <Pill
+                kind={status === 'paid' ? 'teach' : status === 'partial' ? 'revise' : 'absent'}
+                label={status === 'paid' ? 'Paid' : status === 'partial' ? 'Partial' : 'Pending'}
+              />
+            </div>
+            <div className="mt-2 flex items-center justify-between text-[12px] text-[var(--sub)]">
+              <span>Rs {paid.toLocaleString()} of Rs {fee.toLocaleString()}</span>
+              {pendingSub ? (
+                <span className="text-[11px] font-bold text-[var(--amber)]">Proof Under Review ⏳</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => nav.navigate('Fees')}
+                  className="font-bold text-[var(--role-dark)] hover:underline"
+                >
+                  View Details & Pay →
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       <SectionHeader title="Recent Class Activity" actionLabel="View All" onAction={() => nav.navigate('SLOs')} />
       <ListCard>
         {recentLogs.length === 0 ? (

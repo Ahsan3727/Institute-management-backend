@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Settings, List, AlertTriangle, Sun, Moon, Share2, RefreshCw, LogOut, Printer, ChevronRight, Wallet, GraduationCap, BarChart2, Award } from 'lucide-react';
+import { Settings, List, AlertTriangle, Sun, Moon, Share2, RefreshCw, LogOut, Printer, ChevronRight, Wallet, GraduationCap, BarChart2, Award, BookOpen } from 'lucide-react';
 import { useApp } from '@/state/AppContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
@@ -37,6 +37,7 @@ export default function MoreScreen() {
 
   const isTeacherOrAdmin = session.role === 'teacher' || session.role === 'admin';
   const isParentOrAdmin = session.role === 'parent' || session.role === 'admin';
+  const isParent = session.role === 'parent';
   const isAdmin = session.role === 'admin';
 
   const items = [
@@ -44,6 +45,8 @@ export default function MoreScreen() {
     isAdmin && { icon: BarChart2, label: 'Student Progress Reports', go: () => nav.navigate('Reports') },
     isAdmin && { icon: Award, label: 'Exams & Grade Cards', go: () => nav.navigate('Exams') },
     isAdmin && { icon: Wallet, label: 'Finance — Fees & Salaries', go: () => nav.navigate('Finance') },
+    isParent && { icon: Wallet, label: 'Tuition Fees & Payments', go: () => nav.navigate('Fees') },
+    isParent && { icon: BookOpen, label: 'Syllabus & SLOs Covered', go: () => nav.navigate('SLOs') },
     isTeacherOrAdmin && { icon: Settings, label: isAdmin ? 'Setup — Classes, Subjects & School' : 'View Classes & Subjects', go: () => nav.navigate('Setup') },
     isTeacherOrAdmin && { icon: List, label: 'Daily Activity Log', go: () => nav.navigate('DailyLog') },
     isParentOrAdmin && { icon: AlertTriangle, label: 'Missed SLOs', go: () => nav.navigate('Missed') },

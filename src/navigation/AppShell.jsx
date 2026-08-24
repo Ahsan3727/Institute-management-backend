@@ -25,6 +25,7 @@ import ParentDashboard from '@/screens/parent/DashboardScreen';
 import ParentAttendanceScreen from '@/screens/parent/AttendanceScreen';
 import ParentProgressScreen from '@/screens/parent/ProgressScreen';
 import ParentSLOsScreen from '@/screens/parent/SLOsScreen';
+import ParentFeesScreen from '@/screens/parent/FeesScreen';
 
 import AdminDashboard from '@/screens/admin/DashboardScreen';
 import AdminSLOsScreen from '@/screens/admin/SLOsScreen';
@@ -50,8 +51,8 @@ const TAB_CONFIG = {
   parent: [
     { name: 'Dashboard', icon: Home,       component: ParentDashboard,        title: 'Dashboard' },
     { name: 'Attendance',icon: Calendar,   component: ParentAttendanceScreen, title: 'Attendance' },
+    { name: 'Fees',      icon: Wallet,     component: ParentFeesScreen,       title: 'Tuition Fees' },
     { name: 'Progress',  icon: TrendingUp, component: ParentProgressScreen,   title: 'Progress' },
-    { name: 'SLOs',      icon: BookOpen,   component: ParentSLOsScreen,       title: 'SLOs Covered' },
     { name: 'More',      icon: Menu,       component: MoreScreen,             title: 'More' },
   ],
   admin: [
@@ -71,6 +72,7 @@ const OVERLAY_SCREENS = {
   Students: { component: AdminStudentsScreen,title: 'Students' },
   Reports:  { component: AdminReportsScreen, title: 'Student Progress' },
   Exams:    { component: AdminExamsScreen,   title: 'Exams & Grades' },
+  Fees:     { component: ParentFeesScreen,   title: 'Tuition Fees' },
 };
 
 // Desktop sidebar links — shown in collapsed sidebar beyond the main tabs

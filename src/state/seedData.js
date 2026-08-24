@@ -179,6 +179,20 @@ export default function seedData() {
       { id: uid('fee'), studentId: 'st1', month, amount: 5000, date: today },
       { id: uid('fee'), studentId: 'st2', month, amount: 5000, date: today },
     ],
+    feeSubmissions: [
+      {
+        id: uid('subm'),
+        studentId: 'st3',
+        month,
+        amount: 5000,
+        paymentMethod: 'EasyPaisa',
+        referenceId: 'EP-98214421',
+        date: today,
+        note: 'Submitted by Bilal Ahmed for Hamza Bilal tuition',
+        status: 'pending',
+        submittedAt: Date.now() - 3600000,
+      },
+    ],
     salaryPayments: [{ id: uid('sal'), teacherId: 't1', month, amount: 45000, date: today }],
   };
 }
@@ -200,6 +214,7 @@ export function emptyData() {
     attendance: [],
     tests: [],
     feePayments: [],
+    feeSubmissions: [],
     salaryPayments: [],
   };
 }

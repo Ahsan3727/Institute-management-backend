@@ -33,13 +33,15 @@ export default function FinanceScreen() {
 }
 
 function FinanceInner() {
-  const { getFinanceSummary, buildFinanceSummaryText } = useApp();
+  const { data, getFinanceSummary, buildFinanceSummaryText } = useApp();
   const toast = useToast();
   const [month, setMonth] = useState(todayISO().slice(0, 7));
   const [tab, setTab] = useState('fees');
 
   const summary = getFinanceSummary(month);
   const monthLabel = new Date(month + '-01T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+
+  const pendingProofsCount = (data?.feeSubmissions || []).filter((s) => s.status === 'pending').length;
 
   async function handleShare() {
     const text = buildFinanceSummaryText(month);
@@ -101,10 +103,13 @@ function FinanceInner() {
         options={[
           { label: 'Student Fees', value: 'fees' },
           { label: 'Teacher Salaries', value: 'salaries' },
+          { label: `Online Proofs${pendingProofsCount > 0 ? ` (${pendingProofsCount})` : ''}`, value: 'proofs' },
         ]}
       />
 
-      {tab === 'fees' ? <FeesPanel month={month} /> : <SalariesPanel month={month} />}
+      {tab === 'fees' && <FeesPanel month={month} />}
+      {tab === 'salaries' && <SalariesPanel month={month} />}
+      {tab === 'proofs' && <ProofSubmissionsPanel />}
     </ScreenBody>
   );
 }
@@ -262,3 +267,171 @@ function SalariesPanel({ month }) {
     </Card>
   );
 }
+
+function ProofSubmissionsPanel() {
+  const { data, approveFeeSubmission, rejectFeeSubmission } = useApp();
+  const toast = useToast();
+  const [filter, setFilter] = useState('all'); // all | pending | approved | rejected
+  const [rejectTarget, setRejectTarget] = useState(null); // submission object
+  const [rejectReason, setRejectReason] = useState('');
+
+  const submissions = data.feeSubmissions || [];
+  const filtered = submissions.filter((s) => (filter === 'all' ? true : s.status === filter));
+
+  function handleApprove(sub) {
+    approveFeeSubmission(sub.id);
+    const student = data.students.find((s) => s.id === sub.studentId);
+    toast(`Payment of Rs ${sub.amount.toLocaleString()} approved & credited for ${student?.name || 'Student'}.`, 'success');
+  }
+
+  function handleConfirmReject() {
+    if (!rejectTarget) return;
+    rejectFeeSubmission(rejectTarget.id, rejectReason.trim() || 'Payment details could not be verified.');
+    toast('Payment proof marked as rejected.', 'success');
+    setRejectTarget(null);
+    setRejectReason('');
+  }
+
+  return (
+    <Card title="Parent Online Payment Proofs">
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {[
+          { label: 'All', value: 'all' },
+          { label: 'Pending', value: 'pending' },
+          { label: 'Approved', value: 'approved' },
+          { label: 'Rejected', value: 'rejected' },
+        ].map((btn) => (
+          <button
+            key={btn.value}
+            type="button"
+            onClick={() => setFilter(btn.value)}
+            className={
+              'rounded-lg px-3 py-1.5 text-[12px] font-bold ' +
+              (filter === btn.value
+                ? 'bg-[var(--role)] text-white'
+                : 'bg-[var(--bg)] text-[var(--sub)] hover:text-[var(--ink)]')
+            }
+          >
+            {btn.label}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyNote>No payment proofs found.</EmptyNote>
+      ) : (
+        <div className="divide-y divide-[var(--line)]">
+          {filtered.map((sub) => {
+            const student = data.students.find((s) => s.id === sub.studentId);
+            const cls = student ? data.classes.find((c) => c.id === student.classId) : null;
+            const monthLabel = new Date(sub.month + '-01T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+            return (
+              <div key={sub.id} className="py-3.5 first:pt-0 last:pb-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-[14px] font-bold text-[var(--ink)]">
+                      {student ? student.name : 'Unknown Student'}
+                      {cls ? ` (${cls.name})` : ''}
+                    </p>
+                    <p className="text-[12px] font-semibold text-[var(--role-dark)]">
+                      Rs {sub.amount.toLocaleString()} · {sub.paymentMethod}
+                    </p>
+                    <p className="text-[11px] font-mono text-[var(--sub)]">Ref: {sub.referenceId}</p>
+                    <p className="mt-0.5 text-[11px] text-[var(--sub)]">
+                      For: {monthLabel} · Paid on {sub.date}
+                    </p>
+                    {sub.note && (
+                      <p className="mt-1 text-[11.5px] italic text-[var(--sub)]">"{sub.note}"</p>
+                    )}
+                    {sub.rejectionReason && (
+                      <p className="mt-1 text-[11px] font-semibold text-[var(--red)]">
+                        Rejection reason: {sub.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    {sub.status === 'pending' && (
+                      <span className="rounded-full bg-[var(--amber-bg)] px-2.5 py-1 text-[10.5px] font-bold text-[var(--amber)]">
+                        Pending
+                      </span>
+                    )}
+                    {sub.status === 'approved' && (
+                      <span className="rounded-full bg-[var(--green-bg)] px-2.5 py-1 text-[10.5px] font-bold text-[var(--green)]">
+                        Approved
+                      </span>
+                    )}
+                    {sub.status === 'rejected' && (
+                      <span className="rounded-full bg-[var(--red-bg)] px-2.5 py-1 text-[10.5px] font-bold text-[var(--red)]">
+                        Rejected
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {sub.status === 'pending' && (
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleApprove(sub)}
+                      className="flex-1 rounded-xl bg-[var(--green)] py-2 text-[12px] font-bold text-white shadow-sm hover:opacity-95"
+                    >
+                      Approve & Credit Fee
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRejectTarget(sub);
+                        setRejectReason('');
+                      }}
+                      className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3.5 py-2 text-[12px] font-bold text-[var(--red)] hover:bg-[var(--red-bg)]"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Rejection Reason Modal */}
+      {rejectTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-[var(--paper)] p-5 shadow-2xl">
+            <p className="text-[15px] font-bold text-[var(--ink)]">Reject Payment Proof?</p>
+            <p className="mt-1 text-[12px] text-[var(--sub)]">
+              Specify a reason so the parent knows why their submission was declined.
+            </p>
+            <input
+              type="text"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Transaction ID not found in bank statement"
+              className="mt-3 w-full rounded-xl border border-[var(--line)] bg-[var(--bg)] px-3.5 py-2.5 text-[13px] text-[var(--ink)] outline-none"
+            />
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setRejectTarget(null)}
+                className="flex-1 rounded-xl border border-[var(--line)] py-2.5 text-[12.5px] font-bold text-[var(--sub)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReject}
+                className="flex-1 rounded-xl bg-[var(--red)] py-2.5 text-[12.5px] font-bold text-white"
+              >
+                Reject Proof
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
