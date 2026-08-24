@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Wallet, TrendingUp, TrendingDown, Share2, RotateCcw } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Share2, RotateCcw, Printer } from 'lucide-react';
+import { printFeeVoucher, printSalarySlip } from '@/utils/printUtils';
 import { useApp } from '@/state/AppContext';
 import { useToast } from '@/context/ToastContext';
 import ScreenBody from '@/components/ScreenBody';
@@ -109,7 +110,7 @@ function FinanceInner() {
 }
 
 function FeesPanel({ month }) {
-  const { getFeeRows, recordFeePayment, clearFeePaymentsForMonth } = useApp();
+  const { data, getFeeRows, recordFeePayment, clearFeePaymentsForMonth } = useApp();
   const toast = useToast();
   const [payTarget, setPayTarget] = useState(null); // {student, fee, paid}
   const rows = getFeeRows(month);
@@ -134,13 +135,23 @@ function FeesPanel({ month }) {
                 <Pill kind={pillKind} label={pillLabel} />
               </div>
               {status !== 'n/a' ? (
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {status !== 'paid' ? (
                     <SmallButton
                       title={status === 'partial' ? `Pay Remaining Rs ${remaining.toLocaleString()}` : 'Mark Paid'}
                       onClick={() => setPayTarget({ student, fee, paid, remaining })}
                     />
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cls = data.classes.find((c) => c.id === student.classId);
+                      printFeeVoucher({ student, classObj: cls, month, fee, paid, status });
+                    }}
+                    className="flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--line)] px-3 py-2 text-[12px] font-bold text-[var(--sub)]"
+                  >
+                    <Printer size={12} /> Voucher
+                  </button>
                   {paid > 0 ? (
                     <button
                       type="button"
@@ -202,13 +213,20 @@ function SalariesPanel({ month }) {
                 <Pill kind={pillKind} label={pillLabel} />
               </div>
               {status !== 'n/a' ? (
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {status !== 'paid' ? (
                     <SmallButton
                       title={status === 'partial' ? `Pay Remaining Rs ${remaining.toLocaleString()}` : 'Mark Paid'}
                       onClick={() => setPayTarget({ teacher, salary, paid, remaining })}
                     />
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={() => printSalarySlip({ teacher, month, salary, paid, status })}
+                    className="flex items-center gap-1.5 rounded-lg border-[1.5px] border-[var(--line)] px-3 py-2 text-[12px] font-bold text-[var(--sub)]"
+                  >
+                    <Printer size={12} /> Salary Slip
+                  </button>
                   {paid > 0 ? (
                     <button
                       type="button"

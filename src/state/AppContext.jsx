@@ -39,6 +39,11 @@ function normalizeData(d) {
       tuitionFee: 0,
       ...s,
     })),
+    tests: (d.tests || []).map((t) => ({
+      examType: 'Class Test',
+      term: 'Term 1',
+      ...t,
+    })),
     feePayments: d.feePayments || [],
     salaryPayments: d.salaryPayments || [],
   };
@@ -466,11 +471,66 @@ export function AppProvider({ children }) {
   }, []);
 
   // =========================================================
-  // TESTS
+  // TESTS / EXAMS
   // =========================================================
-  const addTest = useCallback((studentId, subjectName, score, max, date) => {
-    setData((d) => ({ ...d, tests: [...d.tests, { id: uid('test'), studentId, subject: subjectName, date, score, max }] }));
+  const addTest = useCallback((studentId, subjectName, score, max, date, examType = 'Class Test', term = 'Term 1') => {
+    setData((d) => ({ ...d, tests: [...d.tests, { id: uid('test'), studentId, subject: subjectName, date, score, max, examType, term }] }));
   }, []);
+
+  const editExamResult = useCallback((testId, updates) => {
+    setData((d) => ({ ...d, tests: d.tests.map((t) => (t.id === testId ? { ...t, ...updates } : t)) }));
+  }, []);
+
+  const deleteExamResult = useCallback((testId) => {
+    setData((d) => ({ ...d, tests: d.tests.filter((t) => t.id !== testId) }));
+  }, []);
+
+  // Returns per-subject grade breakdown for a student for a given term.
+  // Shape: [{ subject, quizAvg, midtermScore, finalScore, pct, grade, remarks }]
+  const getStudentGradeCard = useCallback(
+    (studentId, term) => {
+      const termTests = data.tests.filter((t) => t.studentId === studentId && (!term || t.term === term));
+      const subjectMap = {};
+      termTests.forEach((t) => {
+        if (!subjectMap[t.subject]) subjectMap[t.subject] = { quizzes: [], midterms: [], finals: [], classTests: [] };
+        const pct = t.max > 0 ? Math.round((t.score / t.max) * 100) : 0;
+        if (t.examType === 'Quiz') subjectMap[t.subject].quizzes.push(pct);
+        else if (t.examType === 'Midterm') subjectMap[t.subject].midterms.push(pct);
+        else if (t.examType === 'Final') subjectMap[t.subject].finals.push(pct);
+        else subjectMap[t.subject].classTests.push(pct);
+      });
+      return Object.entries(subjectMap).map(([subject, s]) => {
+        const avg = (arr) => (arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null);
+        const quizAvg = avg(s.quizzes);
+        const midtermScore = avg(s.midterms);
+        const finalScore = avg(s.finals);
+        const classTestAvg = avg(s.classTests);
+        // Weighted total: Quiz 20%, Midterm 30%, Final 40%, Class Tests 10%
+        const parts = [
+          quizAvg !== null ? quizAvg * 0.2 : null,
+          midtermScore !== null ? midtermScore * 0.3 : null,
+          finalScore !== null ? finalScore * 0.4 : null,
+          classTestAvg !== null ? classTestAvg * 0.1 : null,
+        ].filter((x) => x !== null);
+        const weights = [
+          quizAvg !== null ? 0.2 : 0,
+          midtermScore !== null ? 0.3 : 0,
+          finalScore !== null ? 0.4 : 0,
+          classTestAvg !== null ? 0.1 : 0,
+        ];
+        const totalWeight = weights.reduce((a, b) => a + b, 0);
+        const pct = parts.length && totalWeight > 0 ? Math.round(parts.reduce((a, b) => a + b, 0) / totalWeight) : 0;
+        const { grade, remarks } = pct >= 90 ? { grade: 'A+', remarks: 'Outstanding' }
+          : pct >= 80 ? { grade: 'A', remarks: 'Excellent' }
+          : pct >= 70 ? { grade: 'B', remarks: 'Good' }
+          : pct >= 60 ? { grade: 'C', remarks: 'Average' }
+          : pct >= 50 ? { grade: 'D', remarks: 'Below Average' }
+          : { grade: 'F', remarks: 'Fail' };
+        return { subject, quizAvg, midtermScore, finalScore, classTestAvg, pct, grade, remarks };
+      });
+    },
+    [data]
+  );
 
   // =========================================================
   // FINANCE — tuition fees & teacher salaries
@@ -741,6 +801,9 @@ export function AppProvider({ children }) {
       addDailyLog,
       saveAttendanceBulk,
       addTest,
+      editExamResult,
+      deleteExamResult,
+      getStudentGradeCard,
       recordFeePayment,
       clearFeePaymentsForMonth,
       recordSalaryPayment,
@@ -794,6 +857,9 @@ export function AppProvider({ children }) {
       addDailyLog,
       saveAttendanceBulk,
       addTest,
+      editExamResult,
+      deleteExamResult,
+      getStudentGradeCard,
       recordFeePayment,
       clearFeePaymentsForMonth,
       recordSalaryPayment,

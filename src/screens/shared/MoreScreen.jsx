@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Settings, List, AlertTriangle, Sun, Moon, Share2, RefreshCw, LogOut, Printer, ChevronRight, Wallet, GraduationCap, BarChart2 } from 'lucide-react';
+import { Settings, List, AlertTriangle, Sun, Moon, Share2, RefreshCw, LogOut, Printer, ChevronRight, Wallet, GraduationCap, BarChart2, Award } from 'lucide-react';
 import { useApp } from '@/state/AppContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
@@ -42,6 +42,7 @@ export default function MoreScreen() {
   const items = [
     isAdmin && { icon: GraduationCap, label: 'Students Directory & Accounts', go: () => nav.navigate('Students') },
     isAdmin && { icon: BarChart2, label: 'Student Progress Reports', go: () => nav.navigate('Reports') },
+    isAdmin && { icon: Award, label: 'Exams & Grade Cards', go: () => nav.navigate('Exams') },
     isAdmin && { icon: Wallet, label: 'Finance — Fees & Salaries', go: () => nav.navigate('Finance') },
     isTeacherOrAdmin && { icon: Settings, label: isAdmin ? 'Setup — Classes, Subjects & School' : 'View Classes & Subjects', go: () => nav.navigate('Setup') },
     isTeacherOrAdmin && { icon: List, label: 'Daily Activity Log', go: () => nav.navigate('DailyLog') },
