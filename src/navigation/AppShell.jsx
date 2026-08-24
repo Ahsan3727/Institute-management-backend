@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import { Home, BookOpen, Calendar, BarChart2, Menu, Users, TrendingUp, Compass, ChevronLeft } from 'lucide-react';
+import { Home, BookOpen, Calendar, BarChart2, Menu, Users, TrendingUp, Compass, ChevronLeft, GraduationCap } from 'lucide-react';
 
 import { AppProvider, useApp } from '@/state/AppContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
@@ -24,6 +24,7 @@ import ParentSLOsScreen from '@/screens/parent/SLOsScreen';
 import AdminDashboard from '@/screens/admin/DashboardScreen';
 import AdminSLOsScreen from '@/screens/admin/SLOsScreen';
 import AdminTeachersScreen from '@/screens/admin/TeachersScreen';
+import AdminStudentsScreen from '@/screens/admin/StudentsScreen';
 import AdminReportsScreen from '@/screens/admin/ReportsScreen';
 
 import MoreScreen from '@/screens/shared/MoreScreen';
@@ -49,9 +50,9 @@ const TAB_CONFIG = {
   ],
   admin: [
     { name: 'Dashboard', icon: Home, component: AdminDashboard, title: 'Dashboard' },
-    { name: 'SLOs', icon: BookOpen, component: AdminSLOsScreen, title: 'SLOs Overview' },
     { name: 'Teachers', icon: Users, component: AdminTeachersScreen, title: 'Teachers' },
-    { name: 'Reports', icon: BarChart2, component: AdminReportsScreen, title: 'Student Progress' },
+    { name: 'Students', icon: GraduationCap, component: AdminStudentsScreen, title: 'Students' },
+    { name: 'SLOs', icon: BookOpen, component: AdminSLOsScreen, title: 'SLOs Overview' },
     { name: 'More', icon: Menu, component: MoreScreen, title: 'More' },
   ],
 };
@@ -61,6 +62,8 @@ const OVERLAY_SCREENS = {
   Missed: { component: MissedSLOsScreen, title: 'Missed SLOs' },
   DailyLog: { component: DailyLogScreen, title: 'Daily Activity Log' },
   Finance: { component: FinanceScreen, title: 'Finance' },
+  Students: { component: AdminStudentsScreen, title: 'Students' },
+  Reports: { component: AdminReportsScreen, title: 'Student Progress' },
 };
 
 const NavContext = createContext(null);

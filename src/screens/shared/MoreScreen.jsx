@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Settings, List, AlertTriangle, Sun, Moon, Share2, RefreshCw, LogOut, Printer, ChevronRight, Wallet } from 'lucide-react';
+import { Settings, List, AlertTriangle, Sun, Moon, Share2, RefreshCw, LogOut, Printer, ChevronRight, Wallet, GraduationCap, BarChart2 } from 'lucide-react';
 import { useApp } from '@/state/AppContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
@@ -40,8 +40,10 @@ export default function MoreScreen() {
   const isAdmin = session.role === 'admin';
 
   const items = [
+    isAdmin && { icon: GraduationCap, label: 'Students Directory & Accounts', go: () => nav.navigate('Students') },
+    isAdmin && { icon: BarChart2, label: 'Student Progress Reports', go: () => nav.navigate('Reports') },
     isAdmin && { icon: Wallet, label: 'Finance — Fees & Salaries', go: () => nav.navigate('Finance') },
-    isTeacherOrAdmin && { icon: Settings, label: 'Setup — Classes, Subjects, Students', go: () => nav.navigate('Setup') },
+    isTeacherOrAdmin && { icon: Settings, label: isAdmin ? 'Setup — Classes, Subjects & School' : 'View Classes & Subjects', go: () => nav.navigate('Setup') },
     isTeacherOrAdmin && { icon: List, label: 'Daily Activity Log', go: () => nav.navigate('DailyLog') },
     isParentOrAdmin && { icon: AlertTriangle, label: 'Missed SLOs', go: () => nav.navigate('Missed') },
     isTeacherOrAdmin && {
@@ -51,7 +53,7 @@ export default function MoreScreen() {
     },
     { icon: isDark ? Sun : Moon, label: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode', go: toggleTheme },
     { icon: Share2, label: 'Export / Backup Data', go: () => shareOrCopy(exportSnapshot(), 'SLO Tracker Backup', toast) },
-    { icon: RefreshCw, label: 'Reset Demo Data', go: () => setConfirmReset(true), danger: true },
+    isAdmin && { icon: RefreshCw, label: 'Reset Demo Data', go: () => setConfirmReset(true), danger: true },
     { icon: LogOut, label: 'Log Out', go: () => setConfirmLogout(true), danger: true },
   ].filter(Boolean);
 

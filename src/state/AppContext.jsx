@@ -7,23 +7,31 @@ import { uid, todayISO, fmtDate, timeAgo } from '@/utils/helpers';
 
 const AppContext = createContext(null);
 
-const EMPTY_SESSION = { role: null, name: null, studentId: null };
+const EMPTY_SESSION = { role: null, name: null, studentId: null, teacherId: null, username: null };
 
-// Backfills fields/arrays that older saved data (from before finance
-// tracking existed) won't have yet, so upgrading never crashes on load.
+// Backfills fields/arrays that older saved data won't have yet,
+// so upgrading never crashes on load.
 function normalizeData(d) {
   if (!d) return d;
+  const admin = d.admin || { username: 'admin', password: 'admin123', name: 'Principal Admin' };
   return {
     ...d,
+    admin,
     teachers: (d.teachers || []).map((t) => ({
+      username: t.username || t.name.toLowerCase().replace(/[^a-z0-9]/g, '') || `teacher_${t.id}`,
+      password: t.password || 'password123',
       phone: '',
       email: '',
       qualification: '',
       joiningDate: '',
       salary: 0,
+      assignedStudentIds: t.assignedStudentIds || [],
       ...t,
     })),
     students: (d.students || []).map((s) => ({
+      username: s.username || s.name.toLowerCase().replace(/[^a-z0-9]/g, '_') || `student_${s.id}`,
+      password: s.password || 'password123',
+      assignedTeacherId: s.assignedTeacherId || null,
       guardianName: '',
       guardianPhone: '',
       address: '',
@@ -66,9 +74,67 @@ export function AppProvider({ children }) {
   // =========================================================
   // AUTH / SESSION
   // =========================================================
-  const login = useCallback((role, name, studentId) => {
-    setSession({ role, name, studentId: studentId || null });
+  const login = useCallback((role, name, studentId, teacherId, username) => {
+    setSession({
+      role,
+      name,
+      studentId: studentId || null,
+      teacherId: teacherId || null,
+      username: username || null,
+    });
   }, []);
+
+  const authenticateUser = useCallback((role, identifier, password) => {
+    if (!data) return { success: false, error: 'App data not loaded yet.' };
+    const idClean = identifier.trim().toLowerCase();
+    const passClean = password.trim();
+
+    if (role === 'admin') {
+      const adminObj = data.admin || { username: 'admin', password: 'admin123', name: 'Principal Admin' };
+      if (
+        (adminObj.username.toLowerCase() === idClean || 'admin' === idClean) &&
+        adminObj.password === passClean
+      ) {
+        login('admin', adminObj.name || 'Principal Admin', null, null, adminObj.username);
+        return { success: true };
+      }
+      return { success: false, error: 'Invalid admin username or password.' };
+    }
+
+    if (role === 'teacher') {
+      const teacher = data.teachers.find(
+        (t) => (t.username && t.username.toLowerCase() === idClean) ||
+               (t.name && t.name.toLowerCase() === idClean) ||
+               (t.email && t.email.toLowerCase() === idClean)
+      );
+      if (!teacher) {
+        return { success: false, error: 'No teacher found with this username or name.' };
+      }
+      if (teacher.password && teacher.password !== passClean) {
+        return { success: false, error: 'Incorrect teacher password.' };
+      }
+      login('teacher', teacher.name, null, teacher.id, teacher.username);
+      return { success: true };
+    }
+
+    if (role === 'parent') {
+      const student = data.students.find(
+        (s) => (s.username && s.username.toLowerCase() === idClean) ||
+               (s.name && s.name.toLowerCase() === idClean) ||
+               (s.guardianPhone && s.guardianPhone.replace(/\D/g, '') === idClean.replace(/\D/g, ''))
+      );
+      if (!student) {
+        return { success: false, error: 'No student found with this username, name, or phone.' };
+      }
+      if (student.password && student.password !== passClean) {
+        return { success: false, error: 'Incorrect student/parent password.' };
+      }
+      login('parent', student.name, student.id, null, student.username);
+      return { success: true };
+    }
+
+    return { success: false, error: 'Invalid role selected.' };
+  }, [data, login]);
 
   const logout = useCallback(() => {
     removeKey(SESSION_KEY);
@@ -87,6 +153,18 @@ export function AppProvider({ children }) {
     []
   );
 
+  const usernameExists = useCallback(
+    (username, excludeId) => {
+      if (!username || !data) return false;
+      const u = username.trim().toLowerCase();
+      if (data.admin && data.admin.username && data.admin.username.toLowerCase() === u) return true;
+      const inTeachers = data.teachers.some((t) => t.username && t.username.toLowerCase() === u && t.id !== excludeId);
+      const inStudents = data.students.some((s) => s.username && s.username.toLowerCase() === u && s.id !== excludeId);
+      return inTeachers || inStudents;
+    },
+    [data]
+  );
+
   // =========================================================
   // CLASSES / SUBJECTS / STUDENTS / TEACHERS (Setup)
   // =========================================================
@@ -99,40 +177,72 @@ export function AppProvider({ children }) {
   }, []);
 
   const addStudent = useCallback((details) => {
-    setData((d) => ({
-      ...d,
-      students: [
-        ...d.students,
-        {
-          id: uid('st'),
-          name: details.name,
-          classId: details.classId,
-          guardianName: details.guardianName || '',
-          guardianPhone: details.guardianPhone || '',
-          address: details.address || '',
-          admissionDate: details.admissionDate || todayISO(),
-          tuitionFee: Number(details.tuitionFee) || 0,
-        },
-      ],
-    }));
+    const newStudentId = uid('st');
+    const assignedTeacherId = details.assignedTeacherId || null;
+    const defaultUsername = details.username?.trim() || details.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const defaultPassword = details.password?.trim() || 'password123';
+
+    setData((d) => {
+      const newStudent = {
+        id: newStudentId,
+        name: details.name,
+        username: defaultUsername,
+        password: defaultPassword,
+        classId: details.classId,
+        assignedTeacherId,
+        guardianName: details.guardianName || '',
+        guardianPhone: details.guardianPhone || '',
+        address: details.address || '',
+        admissionDate: details.admissionDate || todayISO(),
+        tuitionFee: Number(details.tuitionFee) || 0,
+      };
+
+      const updatedTeachers = assignedTeacherId
+        ? d.teachers.map((t) =>
+            t.id === assignedTeacherId
+              ? { ...t, assignedStudentIds: Array.from(new Set([...(t.assignedStudentIds || []), newStudentId])) }
+              : t
+          )
+        : d.teachers;
+
+      return {
+        ...d,
+        students: [...d.students, newStudent],
+        teachers: updatedTeachers,
+      };
+    });
   }, []);
 
   const addTeacher = useCallback((details) => {
-    setData((d) => ({
-      ...d,
-      teachers: [
-        ...d.teachers,
-        {
-          id: uid('t'),
-          name: details.name,
-          phone: details.phone || '',
-          email: details.email || '',
-          qualification: details.qualification || '',
-          joiningDate: details.joiningDate || todayISO(),
-          salary: Number(details.salary) || 0,
-        },
-      ],
-    }));
+    const newTeacherId = uid('t');
+    const assignedStudentIds = details.assignedStudentIds || [];
+    const defaultUsername = details.username?.trim() || details.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const defaultPassword = details.password?.trim() || 'password123';
+
+    setData((d) => {
+      const newTeacher = {
+        id: newTeacherId,
+        name: details.name,
+        username: defaultUsername,
+        password: defaultPassword,
+        phone: details.phone || '',
+        email: details.email || '',
+        qualification: details.qualification || '',
+        joiningDate: details.joiningDate || todayISO(),
+        salary: Number(details.salary) || 0,
+        assignedStudentIds,
+      };
+
+      const updatedStudents = assignedStudentIds.length
+        ? d.students.map((s) => (assignedStudentIds.includes(s.id) ? { ...s, assignedTeacherId: newTeacherId } : s))
+        : d.students;
+
+      return {
+        ...d,
+        teachers: [...d.teachers, newTeacher],
+        students: updatedStudents,
+      };
+    });
   }, []);
 
   const editClass = useCallback((classId, name) => {
@@ -148,17 +258,82 @@ export function AppProvider({ children }) {
       const old = d.teachers.find((t) => t.id === teacherId);
       const nextUpdates = 'salary' in updates ? { ...updates, salary: Number(updates.salary) || 0 } : updates;
       const renamedTeachers = d.teachers.map((t) => (t.id === teacherId ? { ...t, ...nextUpdates } : t));
-      // Keep past activity-log attribution in sync if the teacher's name changed.
       const nameChanged = old && nextUpdates.name && old.name !== nextUpdates.name;
       const dailyLog = nameChanged ? d.dailyLog.map((l) => (l.teacher === old.name ? { ...l, teacher: nextUpdates.name } : l)) : d.dailyLog;
-      return { ...d, teachers: renamedTeachers, dailyLog };
+
+      let students = d.students;
+      if (nextUpdates.assignedStudentIds) {
+        const assignedSet = new Set(nextUpdates.assignedStudentIds);
+        students = students.map((s) => {
+          if (assignedSet.has(s.id)) return { ...s, assignedTeacherId: teacherId };
+          if (s.assignedTeacherId === teacherId) return { ...s, assignedTeacherId: null };
+          return s;
+        });
+      }
+
+      return { ...d, teachers: renamedTeachers, dailyLog, students };
     });
   }, []);
 
   const editStudent = useCallback((studentId, updates) => {
     const nextUpdates = 'tuitionFee' in updates ? { ...updates, tuitionFee: Number(updates.tuitionFee) || 0 } : updates;
-    setData((d) => ({ ...d, students: d.students.map((s) => (s.id === studentId ? { ...s, ...nextUpdates } : s)) }));
+
+    setData((d) => {
+      const oldStudent = d.students.find((s) => s.id === studentId);
+      const newAssignedTeacherId = 'assignedTeacherId' in nextUpdates ? nextUpdates.assignedTeacherId : oldStudent?.assignedTeacherId;
+
+      let teachers = d.teachers;
+      if (oldStudent && oldStudent.assignedTeacherId !== newAssignedTeacherId) {
+        teachers = teachers.map((t) => {
+          if (t.id === oldStudent.assignedTeacherId) {
+            return { ...t, assignedStudentIds: (t.assignedStudentIds || []).filter((id) => id !== studentId) };
+          }
+          if (t.id === newAssignedTeacherId) {
+            return { ...t, assignedStudentIds: Array.from(new Set([...(t.assignedStudentIds || []), studentId])) };
+          }
+          return t;
+        });
+      }
+
+      return {
+        ...d,
+        students: d.students.map((s) => (s.id === studentId ? { ...s, ...nextUpdates } : s)),
+        teachers,
+      };
+    });
   }, []);
+
+  const assignStudentsToTeacher = useCallback((teacherId, studentIds) => {
+    setData((d) => {
+      const assignedSet = new Set(studentIds);
+      const updatedTeachers = d.teachers.map((t) =>
+        t.id === teacherId ? { ...t, assignedStudentIds: studentIds } : t
+      );
+      const updatedStudents = d.students.map((s) => {
+        if (assignedSet.has(s.id)) {
+          return { ...s, assignedTeacherId: teacherId };
+        }
+        if (s.assignedTeacherId === teacherId && !assignedSet.has(s.id)) {
+          return { ...s, assignedTeacherId: null };
+        }
+        return s;
+      });
+      return {
+        ...d,
+        teachers: updatedTeachers,
+        students: updatedStudents,
+      };
+    });
+  }, []);
+
+  const getTeacherAssignedStudents = useCallback((teacherIdOrName) => {
+    if (!data) return [];
+    const teacher = data.teachers.find((t) => t.id === teacherIdOrName || t.name === teacherIdOrName);
+    if (!teacher || !teacher.assignedStudentIds || teacher.assignedStudentIds.length === 0) {
+      return data.students; // Default to all if not set
+    }
+    return data.students.filter((s) => teacher.assignedStudentIds.includes(s.id));
+  }, [data]);
 
   const classDependentCounts = useCallback(
     (classId) => ({
@@ -181,6 +356,10 @@ export function AppProvider({ children }) {
         attendance: d.attendance.filter((a) => a.classId !== classId),
         tests: d.tests.filter((t) => !studentIds.includes(t.studentId)),
         classes: d.classes.filter((c) => c.id !== classId),
+        teachers: d.teachers.map((t) => ({
+          ...t,
+          assignedStudentIds: (t.assignedStudentIds || []).filter((id) => !studentIds.includes(id)),
+        })),
       };
     });
   }, []);
@@ -218,6 +397,10 @@ export function AppProvider({ children }) {
       tests: d.tests.filter((t) => t.studentId !== studentId),
       feePayments: d.feePayments.filter((f) => f.studentId !== studentId),
       students: d.students.filter((s) => s.id !== studentId),
+      teachers: d.teachers.map((t) => ({
+        ...t,
+        assignedStudentIds: (t.assignedStudentIds || []).filter((id) => id !== studentId),
+      })),
     }));
   }, []);
 
@@ -226,6 +409,7 @@ export function AppProvider({ children }) {
       ...d,
       teachers: d.teachers.filter((t) => t.id !== teacherId),
       salaryPayments: d.salaryPayments.filter((p) => p.teacherId !== teacherId),
+      students: d.students.map((s) => (s.assignedTeacherId === teacherId ? { ...s, assignedTeacherId: null } : s)),
     }));
   }, []);
 
@@ -531,6 +715,10 @@ export function AppProvider({ children }) {
       logout,
       switchChild,
       nameExists,
+      usernameExists,
+      authenticateUser,
+      assignStudentsToTeacher,
+      getTeacherAssignedStudents,
       addClass,
       addSubject,
       addStudent,
@@ -580,6 +768,10 @@ export function AppProvider({ children }) {
       logout,
       switchChild,
       nameExists,
+      usernameExists,
+      authenticateUser,
+      assignStudentsToTeacher,
+      getTeacherAssignedStudents,
       addClass,
       addSubject,
       addStudent,

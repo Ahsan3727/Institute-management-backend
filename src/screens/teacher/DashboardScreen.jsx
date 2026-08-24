@@ -25,6 +25,9 @@ export default function TeacherDashboard() {
   const { data, session, slosCoveredSet, last7DaysCounts } = useApp();
   const nav = useNav();
 
+  const currentTeacher = data.teachers.find((t) => t.id === session.teacherId || t.name === session.name);
+  const assignedStudentCount = (currentTeacher?.assignedStudentIds || []).length;
+
   const today = todayISO();
   const todayLogs = [...data.dailyLog].filter((l) => l.date === today).sort((a, b) => (b.ts || 0) - (a.ts || 0));
   const sloToday = new Set();
@@ -39,7 +42,10 @@ export default function TeacherDashboard() {
 
       <StatGrid>
         <StatBox value={data.classes.length} label="Classes" />
-        <StatBox value={data.students.length} label="Students" />
+        <StatBox
+          value={assignedStudentCount > 0 ? assignedStudentCount : data.students.length}
+          label={assignedStudentCount > 0 ? "My Students" : "Students"}
+        />
         <StatBox value={sloToday.size} label="SLOs Today" />
         <StatBox value={absentToday} label="Absent" colorClass="text-[var(--red)]" />
       </StatGrid>

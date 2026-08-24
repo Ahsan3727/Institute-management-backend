@@ -9,33 +9,47 @@ export default function seedData() {
   const today = new Date().toISOString().slice(0, 10);
 
   return {
+    admin: {
+      username: 'admin',
+      password: 'admin123',
+      name: 'Principal Admin',
+    },
     teachers: [
       {
         id: 't1',
         name: 'Mr. Ali',
+        username: 'ali',
+        password: 'password123',
         phone: '0300-1234567',
         email: 'ali@school.edu.pk',
         qualification: 'M.Sc Mathematics',
         joiningDate: '2022-08-01',
         salary: 45000,
+        assignedStudentIds: ['st1', 'st2', 'st3', 'st4', 'st5'],
       },
       {
         id: 't2',
         name: 'Mrs. Sara',
+        username: 'sara',
+        password: 'password123',
         phone: '0301-2345678',
         email: 'sara@school.edu.pk',
         qualification: 'B.Ed English',
         joiningDate: '2021-06-15',
         salary: 42000,
+        assignedStudentIds: ['st6', 'st7'],
       },
       {
         id: 't3',
         name: 'Mr. Ahmed',
+        username: 'ahmed',
+        password: 'password123',
         phone: '0302-3456789',
         email: 'ahmed@school.edu.pk',
         qualification: 'M.Sc Physics',
         joiningDate: '2023-01-10',
         salary: 40000,
+        assignedStudentIds: [],
       },
     ],
     classes: [
@@ -53,7 +67,10 @@ export default function seedData() {
       {
         id: 'st1',
         name: 'Ahmed Khan',
+        username: 'ahmed_khan',
+        password: 'password123',
         classId: 'c1',
+        assignedTeacherId: 't1',
         guardianName: 'Tariq Khan',
         guardianPhone: '0333-1112222',
         address: 'Street 4, Faisalabad',
@@ -63,7 +80,10 @@ export default function seedData() {
       {
         id: 'st2',
         name: 'Sara Ali',
+        username: 'sara_ali',
+        password: 'password123',
         classId: 'c1',
+        assignedTeacherId: 't1',
         guardianName: 'Imran Ali',
         guardianPhone: '0333-2223333',
         address: 'Street 9, Faisalabad',
@@ -73,7 +93,10 @@ export default function seedData() {
       {
         id: 'st3',
         name: 'Hamza Bilal',
+        username: 'hamza_bilal',
+        password: 'password123',
         classId: 'c1',
+        assignedTeacherId: 't1',
         guardianName: 'Bilal Ahmed',
         guardianPhone: '0333-3334444',
         address: 'Street 2, Faisalabad',
@@ -83,7 +106,10 @@ export default function seedData() {
       {
         id: 'st4',
         name: 'Ayesha Malik',
+        username: 'ayesha_malik',
+        password: 'password123',
         classId: 'c1',
+        assignedTeacherId: 't1',
         guardianName: 'Malik Rashid',
         guardianPhone: '0333-4445555',
         address: 'Street 7, Faisalabad',
@@ -93,7 +119,10 @@ export default function seedData() {
       {
         id: 'st5',
         name: 'Muhammad Zain',
+        username: 'muhammad_zain',
+        password: 'password123',
         classId: 'c1',
+        assignedTeacherId: 't1',
         guardianName: 'Waseem Akhtar',
         guardianPhone: '0333-5556666',
         address: 'Street 1, Faisalabad',
@@ -103,7 +132,10 @@ export default function seedData() {
       {
         id: 'st6',
         name: 'Bilal Tariq',
+        username: 'bilal_tariq',
+        password: 'password123',
         classId: 'c2',
+        assignedTeacherId: 't2',
         guardianName: 'Tariq Mehmood',
         guardianPhone: '0333-6667777',
         address: 'Street 12, Faisalabad',
@@ -113,7 +145,10 @@ export default function seedData() {
       {
         id: 'st7',
         name: 'Hania Iqbal',
+        username: 'hania_iqbal',
+        password: 'password123',
         classId: 'c2',
+        assignedTeacherId: 't2',
         guardianName: 'Iqbal Hussain',
         guardianPhone: '0333-7778888',
         address: 'Street 15, Faisalabad',
@@ -140,26 +175,22 @@ export default function seedData() {
     dailyLog: [], // {id, date, ts, classId, subjectId, type, sloIds:[], teacher}
     attendance: [], // {id, date, classId, studentId, status}
     tests: [], // {id, studentId, subject, date, score, max}
-
-    // Fee payments received from students. One row per payment (a student
-    // can have more than one row in the same month for partial payments).
-    // Whether a student has "paid" for a given month is derived by summing
-    // these — see AppContext's getStudentFeePaid() — not stored as a flag.
     feePayments: [
       { id: uid('fee'), studentId: 'st1', month, amount: 5000, date: today },
       { id: uid('fee'), studentId: 'st2', month, amount: 5000, date: today },
     ],
-
-    // Salary payments made to teachers — same "derive status by summing" idea.
     salaryPayments: [{ id: uid('sal'), teacherId: 't1', month, amount: 45000, date: today }],
   };
 }
 
 // A completely blank dataset — same shape as seedData(), no demo content.
-// Used by "Clear All Data" so a school can start from a truly empty slate
-// and enter their own real classes/subjects/teachers/students/SLOs/finances.
 export function emptyData() {
   return {
+    admin: {
+      username: 'admin',
+      password: 'admin123',
+      name: 'Principal Admin',
+    },
     teachers: [],
     classes: [],
     subjects: [],

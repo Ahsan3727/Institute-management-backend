@@ -11,16 +11,25 @@ import { Avatar, EmptyNote } from '@/components/Lists';
 import { todayISO } from '@/utils/helpers';
 
 export default function TeacherAttendanceScreen() {
-  const { data, saveAttendanceBulk } = useApp();
+  const { data, session, saveAttendanceBulk } = useApp();
   const toast = useToast();
+
+  const currentTeacher = data.teachers.find((t) => t.id === session.teacherId || t.name === session.name);
+  const teacherAssignedIds = currentTeacher?.assignedStudentIds || [];
+  const hasAssigned = teacherAssignedIds.length > 0;
 
   const [classId, setClassId] = useState(data.classes[0]?.id);
   const [date, setDate] = useState(todayISO());
   const [search, setSearch] = useState('');
+  const [filterMode, setFilterMode] = useState(hasAssigned ? 'assigned' : 'all'); // 'assigned' | 'all'
   const [draft, setDraft] = useState({});
 
   const allInClass = data.students.filter((s) => s.classId === classId);
-  const filtered = search ? allInClass.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())) : allInClass;
+  const classStudents = filterMode === 'assigned' && hasAssigned
+    ? allInClass.filter((s) => teacherAssignedIds.includes(s.id))
+    : allInClass;
+
+  const filtered = search ? classStudents.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())) : classStudents;
 
   function statusFor(studentId) {
     if (draft[studentId]) return draft[studentId];
@@ -32,14 +41,14 @@ export default function TeacherAttendanceScreen() {
     setDraft((prev) => ({ ...prev, [studentId]: statusFor(studentId) === 'present' ? 'absent' : 'present' }));
   }
 
-  const presentCount = allInClass.filter((s) => statusFor(s.id) === 'present').length;
-  const total = allInClass.length;
+  const presentCount = classStudents.filter((s) => statusFor(s.id) === 'present').length;
+  const total = classStudents.length;
 
   function handleSave() {
-    const records = allInClass.map((s) => ({ studentId: s.id, status: statusFor(s.id) }));
+    const records = classStudents.map((s) => ({ studentId: s.id, status: statusFor(s.id) }));
     saveAttendanceBulk(classId, date, records);
     setDraft({});
-    toast(`Attendance saved for ${date}.`, 'success');
+    toast(`Attendance saved for ${records.length} student(s) on ${date}.`, 'success');
   }
 
   return (
@@ -64,6 +73,41 @@ export default function TeacherAttendanceScreen() {
             className="flex-1"
           />
         </div>
+
+        {hasAssigned ? (
+          <div className="mb-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setFilterMode('assigned');
+                setDraft({});
+              }}
+              className={
+                'flex-1 rounded-xl py-2 text-[12px] font-bold transition ' +
+                (filterMode === 'assigned'
+                  ? 'bg-[var(--role)] text-white shadow-sm'
+                  : 'bg-[var(--bg)] text-[var(--sub)] border border-[var(--line)]')
+              }
+            >
+              My Assigned Students ({teacherAssignedIds.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFilterMode('all');
+                setDraft({});
+              }}
+              className={
+                'flex-1 rounded-xl py-2 text-[12px] font-bold transition ' +
+                (filterMode === 'all'
+                  ? 'bg-[var(--role)] text-white shadow-sm'
+                  : 'bg-[var(--bg)] text-[var(--sub)] border border-[var(--line)]')
+              }
+            >
+              All in Class ({allInClass.length})
+            </button>
+          </div>
+        ) : null}
 
         <div className="mb-3 flex gap-2">
           <SummaryBox label="Total" value={total} colorClass="text-[var(--ink)]" />

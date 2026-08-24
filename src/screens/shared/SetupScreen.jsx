@@ -15,15 +15,22 @@ import { SearchField } from '@/components/Inputs';
 
 export default function SetupScreen() {
   const { session } = useApp();
-  const canEdit = session.role === 'teacher' || session.role === 'admin';
   const isAdmin = session.role === 'admin';
 
   return (
     <ScreenBody>
-      <ClassesSection canEdit={canEdit} />
-      <SubjectsSection canEdit={canEdit} />
-      <StudentsSection canEdit={canEdit} isAdmin={isAdmin} />
-      <BackupSection />
+      <ClassesSection canEdit={isAdmin} />
+      <SubjectsSection canEdit={isAdmin} />
+      {isAdmin ? (
+        <StudentsSection isAdmin={isAdmin} />
+      ) : (
+        <Card title="Student Enrolments">
+          <p className="text-[12.5px] leading-[18px] text-[var(--sub)]">
+            Student registrations and profile configurations are managed strictly by School Administration. Teachers can view their assigned students in the Attendance and Dashboard screens.
+          </p>
+        </Card>
+      )}
+      {isAdmin ? <BackupSection /> : null}
     </ScreenBody>
   );
 }
@@ -276,11 +283,12 @@ function StudentsSection({ canEdit, isAdmin }) {
 
       <StudentFormModal
         open={!!editing}
-        title={editing?.id ? 'Edit student' : 'Add a student'}
+        title={editing?.id ? 'Edit student & credentials' : 'Add a student & create account'}
         initial={editing?.id ? editing : null}
         classOptions={classOptions}
+        teacherOptions={data.teachers.map((t) => ({ label: t.name, value: t.id }))}
         showFee={isAdmin}
-        saveLabel={editing?.id ? 'Save Changes' : 'Add Student'}
+        saveLabel={editing?.id ? 'Save Changes' : 'Create Student'}
         onCancel={() => setEditing(null)}
         onSave={handleSave}
       />

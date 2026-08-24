@@ -14,11 +14,25 @@ import { Target } from 'lucide-react';
 import { todayISO } from '@/utils/helpers';
 
 export default function TeacherReportsScreen() {
-  const { data, addTest } = useApp();
+  const { data, session, addTest } = useApp();
   const toast = useToast();
   const nav = useNav();
 
-  const [studentId, setStudentId] = useState(data.students[0]?.id);
+  const currentTeacher = data.teachers.find((t) => t.id === session.teacherId || t.name === session.name);
+  const teacherAssignedIds = currentTeacher?.assignedStudentIds || [];
+
+  const studentOptions = data.students.map((s) => {
+    const cls = data.classes.find((c) => c.id === s.classId);
+    const isAssigned = teacherAssignedIds.includes(s.id);
+    return {
+      label: `${s.name} (${cls ? cls.name : '—'})${isAssigned ? ' ★ Assigned' : ''}`,
+      value: s.id,
+    };
+  });
+
+  const [studentId, setStudentId] = useState(
+    teacherAssignedIds[0] || data.students[0]?.id
+  );
   const [subjectId, setSubjectId] = useState(data.subjects[0]?.id);
   const [score, setScore] = useState('');
   const [max, setMax] = useState('100');
@@ -52,7 +66,7 @@ export default function TeacherReportsScreen() {
       <Card title="Add a test result">
         <div className="flex gap-2.5">
           <SelectField
-            options={data.students.map((s) => ({ label: s.name, value: s.id }))}
+            options={studentOptions}
             value={studentId}
             onChange={setStudentId}
             className="flex-1"
