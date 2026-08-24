@@ -54,22 +54,56 @@ export function AppProvider({ children }) {
   const [data, setData] = useState(null); // null until loaded
   const [session, setSession] = useState(EMPTY_SESSION);
   const [ready, setReady] = useState(false);
+  const [dbStatus, setDbStatus] = useState('syncing'); // 'connected' | 'syncing' | 'offline'
   const loadedOnce = useRef(false);
+  const syncTimerRef = useRef(null);
 
   // ---- load on mount (client only) ----
   useEffect(() => {
     const storedData = readJSON(STORAGE_KEY);
     const storedSession = readJSON(SESSION_KEY);
-    setData(storedData ? normalizeData(storedData) : seedData());
+    if (storedData) setData(normalizeData(storedData));
     if (storedSession) setSession(storedSession);
     loadedOnce.current = true;
     setReady(true);
+
+    // Fetch live MongoDB state
+    fetch('/api/data')
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.ok && res.data) {
+          const normalized = normalizeData(res.data);
+          setData(normalized);
+          writeJSON(STORAGE_KEY, normalized);
+          setDbStatus('connected');
+        } else {
+          setDbStatus('offline');
+        }
+      })
+      .catch((err) => {
+        console.warn('MongoDB sync fallback to local storage:', err);
+        setDbStatus('offline');
+      });
   }, []);
 
-  // ---- persist on change ----
+  // ---- persist on change + background sync to MongoDB ----
   useEffect(() => {
     if (!loadedOnce.current || !data) return;
     writeJSON(STORAGE_KEY, data);
+
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      fetch('/api/data', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data }),
+      })
+        .then((r) => r.json())
+        .then((r) => {
+          if (r.ok) setDbStatus('connected');
+        })
+        .catch(() => setDbStatus('offline'));
+    }, 800);
   }, [data]);
 
   useEffect(() => {
@@ -215,6 +249,62 @@ export function AppProvider({ children }) {
         ...d,
         students: [...d.students, newStudent],
         teachers: updatedTeachers,
+      };
+    });
+  }, []);
+
+  const bulkAddStudents = useCallback((studentsList) => {
+    setData((d) => {
+      let updatedClasses = [...d.classes];
+      let updatedTeachers = [...d.teachers];
+      const newStudents = [];
+
+      studentsList.forEach((st) => {
+        let classId = st.classId;
+        if (!classId && st.className) {
+          let existingCls = updatedClasses.find((c) => c.name.toLowerCase() === st.className.toLowerCase());
+          if (!existingCls) {
+            existingCls = { id: uid('cls'), name: st.className };
+            updatedClasses.push(existingCls);
+          }
+          classId = existingCls.id;
+        }
+
+        const studentId = uid('st');
+        let teacherId = st.assignedTeacherId;
+        if (st.teacherName && !teacherId) {
+          const t = updatedTeachers.find((x) => x.name.toLowerCase() === st.teacherName.toLowerCase());
+          if (t) teacherId = t.id;
+        }
+
+        if (teacherId) {
+          updatedTeachers = updatedTeachers.map((t) =>
+            t.id === teacherId
+              ? { ...t, assignedStudentIds: Array.from(new Set([...(t.assignedStudentIds || []), studentId])) }
+              : t
+          );
+        }
+
+        newStudents.push({
+          id: studentId,
+          name: st.name,
+          username: st.username || st.name.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+          password: st.password || 'password123',
+          classId: classId || (updatedClasses[0]?.id || 'c1'),
+          assignedTeacherId: teacherId || null,
+          guardianName: st.guardianName || '',
+          guardianPhone: st.guardianPhone || '',
+          address: st.address || '',
+          admissionDate: st.admissionDate || todayISO(),
+          tuitionFee: Number(st.tuitionFee) || 0,
+        });
+      });
+
+      return {
+        ...d,
+        classes: updatedClasses,
+        teachers: updatedTeachers,
+        students: [...d.students, ...newStudents],
       };
     });
   }, []);
@@ -422,17 +512,57 @@ export function AppProvider({ children }) {
   // =========================================================
   // SLOs
   // =========================================================
-  const addSlosFromLines = useCallback((classId, subjectId, term, linesText) => {
-    const lines = linesText
-      .split('\n')
-      .map((l) => l.trim())
-      .filter(Boolean);
-    if (lines.length === 0) return 0;
-    setData((d) => ({
-      ...d,
-      slos: [...d.slos, ...lines.map((text) => ({ id: uid('slo'), classId, subjectId, term, text }))],
-    }));
-    return lines.length;
+  const addSlosFromLines = useCallback((classId, subjectId, term, lines) => {
+    const clean = lines.map((l) => l.trim()).filter(Boolean);
+    if (!clean.length) return 0;
+    const newItems = clean.map((text) => ({ id: uid('slo'), classId, subjectId, term, text }));
+    setData((d) => ({ ...d, slos: [...d.slos, ...newItems] }));
+    return newItems.length;
+  }, []);
+
+  const bulkAddSlos = useCallback((slosList) => {
+    setData((d) => {
+      let updatedClasses = [...d.classes];
+      let updatedSubjects = [...d.subjects];
+      const newSlos = [];
+
+      slosList.forEach((item) => {
+        let classId = item.classId;
+        if (!classId && item.className) {
+          let cls = updatedClasses.find((c) => c.name.toLowerCase() === item.className.toLowerCase());
+          if (!cls) {
+            cls = { id: uid('cls'), name: item.className };
+            updatedClasses.push(cls);
+          }
+          classId = cls.id;
+        }
+
+        let subjectId = item.subjectId;
+        if (!subjectId && item.subjectName) {
+          let subj = updatedSubjects.find((s) => s.name.toLowerCase() === item.subjectName.toLowerCase());
+          if (!subj) {
+            subj = { id: uid('subj'), name: item.subjectName };
+            updatedSubjects.push(subj);
+          }
+          subjectId = subj.id;
+        }
+
+        newSlos.push({
+          id: uid('slo'),
+          classId: classId || updatedClasses[0]?.id || 'c1',
+          subjectId: subjectId || updatedSubjects[0]?.id || 's1',
+          term: item.term || 'Term 1',
+          text: item.text,
+        });
+      });
+
+      return {
+        ...d,
+        classes: updatedClasses,
+        subjects: updatedSubjects,
+        slos: [...d.slos, ...newSlos],
+      };
+    });
   }, []);
 
   const deleteSlo = useCallback((sloId) => {
@@ -858,6 +988,7 @@ export function AppProvider({ children }) {
   const value = useMemo(
     () => ({
       ready,
+      dbStatus,
       data,
       session,
       login,
@@ -871,6 +1002,7 @@ export function AppProvider({ children }) {
       addClass,
       addSubject,
       addStudent,
+      bulkAddStudents,
       addTeacher,
       editClass,
       editSubject,
@@ -884,6 +1016,7 @@ export function AppProvider({ children }) {
       deleteStudent,
       deleteTeacher,
       addSlosFromLines,
+      bulkAddSlos,
       deleteSlo,
       editSlo,
       slosCoveredSet,
@@ -918,6 +1051,7 @@ export function AppProvider({ children }) {
     }),
     [
       ready,
+      dbStatus,
       data,
       session,
       login,
@@ -931,6 +1065,7 @@ export function AppProvider({ children }) {
       addClass,
       addSubject,
       addStudent,
+      bulkAddStudents,
       addTeacher,
       editClass,
       editSubject,
@@ -944,6 +1079,7 @@ export function AppProvider({ children }) {
       deleteStudent,
       deleteTeacher,
       addSlosFromLines,
+      bulkAddSlos,
       deleteSlo,
       editSlo,
       slosCoveredSet,

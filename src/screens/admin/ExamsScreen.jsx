@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Award, Printer, ChevronDown } from 'lucide-react';
+import { Award, Printer, ChevronDown, Download, FileSpreadsheet } from 'lucide-react';
 import { useApp } from '@/state/AppContext';
 import { useNav } from '@/navigation/AppShell';
 import ScreenBody from '@/components/ScreenBody';
@@ -11,6 +11,7 @@ import { SelectField, Label } from '@/components/Inputs';
 import { SmallButton, Segmented } from '@/components/Buttons';
 import { EmptyNote } from '@/components/Lists';
 import { printReportCard } from '@/utils/printUtils';
+import { exportMarksSheet } from '@/utils/excelUtils';
 
 const TERMS = ['Term 1', 'Term 2', 'Final'];
 const GRADE_COLORS = { 'A+': '#7C3AED', A: '#2563eb', B: '#16a34a', C: '#d97706', D: '#ea580c', F: '#dc2626' };
@@ -77,7 +78,7 @@ export default function AdminExamsScreen() {
             onChange={setStudentId}
           />
         </div>
-        <div>
+        <div className="mb-3">
           <Label>Term</Label>
           <SelectField
             options={TERMS.map((t) => ({ label: t, value: t }))}
@@ -85,6 +86,13 @@ export default function AdminExamsScreen() {
             onChange={setTerm}
           />
         </div>
+        <button
+          type="button"
+          onClick={() => exportMarksSheet(data.tests, data.students, data.classes, data.subjects, term)}
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--paper)] py-2 text-[12.5px] font-bold text-[var(--ink)] shadow-sm hover:bg-[var(--bg)]"
+        >
+          <Download size={14} /> Export All Marks for {term} (.xlsx)
+        </button>
       </Card>
 
       {student && (

@@ -98,7 +98,7 @@ export function useNav() {
 }
 
 // ── Desktop Sidebar ───────────────────────────────────────────────────────────
-function DesktopSidebar({ tabs, tab, setTab, setTabParams, nav, session, isDark, toggleTheme, logout, collapsed, setCollapsed }) {
+function DesktopSidebar({ tabs, tab, setTab, setTabParams, nav, session, dbStatus, isDark, toggleTheme, logout, collapsed, setCollapsed }) {
   const extraLinks = session.role === 'admin' ? ADMIN_SIDEBAR_EXTRA : TEACHER_SIDEBAR_EXTRA;
   return (
     <aside
@@ -117,6 +117,24 @@ function DesktopSidebar({ tabs, tab, setTab, setTabParams, nav, session, isDark,
           </div>
         )}
       </div>
+
+      {/* Cloud Sync Status Indicator */}
+      {!collapsed && (
+        <div className="mx-2.5 my-2 flex items-center gap-1.5 rounded-lg bg-[var(--bg)] px-2.5 py-1 text-[10px] font-semibold text-[var(--sub)]">
+          <span
+            className={`h-2 w-2 rounded-full shrink-0 ${
+              dbStatus === 'connected'
+                ? 'bg-[var(--green)] animate-pulse'
+                : dbStatus === 'syncing'
+                ? 'bg-[var(--amber)] animate-ping'
+                : 'bg-[var(--sub)]'
+            }`}
+          />
+          <span className="truncate">
+            {dbStatus === 'connected' ? 'MongoDB Synced' : dbStatus === 'syncing' ? 'Syncing Cloud...' : 'Offline (Local)'}
+          </span>
+        </div>
+      )}
 
       {/* Main nav tabs */}
       <nav className="flex-1 overflow-y-auto py-2">
@@ -211,7 +229,7 @@ function DesktopSidebar({ tabs, tab, setTab, setTabParams, nav, session, isDark,
 
 // ── Shell Inner ───────────────────────────────────────────────────────────────
 function ShellInner() {
-  const { session, data, logout } = useApp();
+  const { session, data, dbStatus, logout } = useApp();
   const { role, isDark, toggleTheme } = useTheme();
 
   const tabs = TAB_CONFIG[role] || TAB_CONFIG.teacher;
@@ -270,6 +288,7 @@ function ShellInner() {
             setTabParams={setTabParams}
             nav={nav}
             session={session}
+            dbStatus={dbStatus}
             isDark={isDark}
             toggleTheme={toggleTheme}
             logout={logout}

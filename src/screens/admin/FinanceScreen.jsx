@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Wallet, TrendingUp, TrendingDown, Share2, RotateCcw, Printer } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Share2, RotateCcw, Printer, FileSpreadsheet, Download } from 'lucide-react';
 import { printFeeVoucher, printSalarySlip } from '@/utils/printUtils';
+import { exportFeeLedger } from '@/utils/excelUtils';
 import { useApp } from '@/state/AppContext';
 import { useToast } from '@/context/ToastContext';
 import ScreenBody from '@/components/ScreenBody';
@@ -22,8 +23,8 @@ export default function FinanceScreen() {
   if (session.role !== 'admin') {
     return (
       <ScreenBody>
-        <Card>
-          <p className="text-[13px] text-[var(--sub)]">Finance is only available to Admin accounts.</p>
+        <Card title="Restricted Access">
+          <p className="text-[13px] text-[var(--sub)]">Only the Administrator can view full institutional finance details.</p>
         </Card>
       </ScreenBody>
     );
@@ -33,7 +34,7 @@ export default function FinanceScreen() {
 }
 
 function FinanceInner() {
-  const { data, getFinanceSummary, buildFinanceSummaryText } = useApp();
+  const { data, getFinanceSummary, getFeeRows, buildFinanceSummaryText } = useApp();
   const toast = useToast();
   const [month, setMonth] = useState(todayISO().slice(0, 7));
   const [tab, setTab] = useState('fees');
@@ -76,7 +77,16 @@ function FinanceInner() {
             className="rounded-lg border-[1.5px] border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-[13px] font-semibold text-[var(--ink)] outline-none"
           />
         </div>
-        <SmallButton title="Share finance summary" onClick={handleShare} className="w-full" />
+        <div className="flex gap-2">
+          <SmallButton title="Share summary" onClick={handleShare} className="flex-1" />
+          <button
+            type="button"
+            onClick={() => exportFeeLedger(getFeeRows(month), data.classes, month)}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-[12px] font-bold text-[var(--ink)] shadow-sm hover:bg-[var(--bg)]"
+          >
+            <Download size={13} /> Export Ledger (.xlsx)
+          </button>
+        </div>
       </Card>
 
       <div className="mb-4 rounded-[18px] border border-[var(--line)] bg-[var(--role-bg)] p-[18px]">

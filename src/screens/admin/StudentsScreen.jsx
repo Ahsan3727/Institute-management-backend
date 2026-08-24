@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, UserCheck, Phone, DollarSign, KeyRound, ShieldAlert, Award, BarChart2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, UserCheck, Phone, DollarSign, KeyRound, ShieldAlert, Award, BarChart2, FileSpreadsheet, Download, Upload } from 'lucide-react';
 import { useApp } from '@/state/AppContext';
 import { useToast } from '@/context/ToastContext';
 import { useNav } from '@/navigation/AppShell';
@@ -13,10 +13,12 @@ import { TextField, SelectField, SearchField } from '@/components/Inputs';
 import { Avatar, EmptyNote } from '@/components/Lists';
 import { ConfirmModal } from '@/components/Modals';
 import StudentFormModal from '@/components/StudentFormModal';
+import BulkImportModal from '@/components/BulkImportModal';
 import Pill from '@/components/Pill';
+import { exportStudentDirectory } from '@/utils/excelUtils';
 
 export default function AdminStudentsScreen() {
-  const { data, addStudent, editStudent, deleteStudent, studentDependentCounts, nameExists } = useApp();
+  const { data, addStudent, bulkAddStudents, editStudent, deleteStudent, studentDependentCounts, nameExists } = useApp();
   const toast = useToast();
   const nav = useNav();
 
@@ -25,6 +27,7 @@ export default function AdminStudentsScreen() {
   const [teacherFilter, setTeacherFilter] = useState('all');
   const [editing, setEditing] = useState(null); // student object or {} for new
   const [deleting, setDeleting] = useState(null);
+  const [showBulkModal, setShowBulkModal] = useState(false);
 
   const classOptions = useMemo(() => {
     return data.classes.map((c) => ({ label: c.name, value: c.id }));
@@ -83,14 +86,37 @@ export default function AdminStudentsScreen() {
     setEditing(null);
   }
 
+  function handleBulkImport(rows) {
+    bulkAddStudents(rows);
+    setShowBulkModal(false);
+    toast(`Successfully imported ${rows.length} students from Excel!`, 'success');
+  }
+
   return (
     <ScreenBody>
-      <PrimaryButton
-        title="Add Student & Create Account"
-        icon={Plus}
-        onClick={() => setEditing({})}
-        className="mb-3"
-      />
+      {/* Action Buttons Header */}
+      <div className="mb-3 flex flex-col sm:flex-row gap-2">
+        <PrimaryButton
+          title="Add Student"
+          icon={Plus}
+          onClick={() => setEditing({})}
+          className="flex-1"
+        />
+        <button
+          type="button"
+          onClick={() => setShowBulkModal(true)}
+          className="flex items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-[var(--line)] bg-[var(--paper)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--ink)] shadow-sm hover:bg-[var(--bg)]"
+        >
+          <Upload size={15} /> Bulk Import Excel
+        </button>
+        <button
+          type="button"
+          onClick={() => exportStudentDirectory(data.students, data.classes, data.teachers)}
+          className="flex items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-[var(--line)] bg-[var(--paper)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--ink)] shadow-sm hover:bg-[var(--bg)]"
+        >
+          <Download size={15} /> Export Excel
+        </button>
+      </div>
 
       <StatGrid>
         <StatBox value={data.students.length} label="Total Students" />
@@ -215,6 +241,15 @@ export default function AdminStudentsScreen() {
           toast('Student removed.', 'success');
           setDeleting(null);
         }}
+      />
+
+      <BulkImportModal
+        open={showBulkModal}
+        mode="students"
+        classes={data.classes}
+        teachers={data.teachers}
+        onCancel={() => setShowBulkModal(false)}
+        onImport={handleBulkImport}
       />
     </ScreenBody>
   );
