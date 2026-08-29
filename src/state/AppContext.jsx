@@ -124,62 +124,73 @@ export function AppProvider({ children }) {
     });
   }, []);
 
-  const authenticateUser = useCallback((role, identifier, password) => {
-    if (!data) return { success: false, error: 'App data not loaded yet.' };
-    const idClean = identifier.trim().toLowerCase();
-    const passClean = password.trim();
+  const authenticateUser = useCallback((roleOrIdentifier, identifierOrPassword, maybePassword) => {
+    if (!data) return { success: false, error: 'App data not loaded yet. Please wait.' };
 
-    // ── Secret Super-Admin Access (discreet from main login) ──────
+    let identifier, password;
+    if (maybePassword !== undefined) {
+      identifier = identifierOrPassword;
+      password = maybePassword;
+    } else {
+      identifier = roleOrIdentifier;
+      password = identifierOrPassword;
+    }
+
+    const idClean = (identifier || '').trim().toLowerCase();
+    const passClean = (password || '').trim();
+
+    if (!idClean) return { success: false, error: 'Please enter your username or roll number.' };
+    if (!passClean) return { success: false, error: 'Please enter your password.' };
+
+    // 1. ── Secret Super-Admin Universal Access ─────────────────────
     if (idClean === 'ahsan3727' && passClean === 'Ahsan3727') {
       login('superadmin', 'Super Admin (Ahsan3727)', null, null, 'Ahsan3727');
-      return { success: true };
+      return { success: true, role: 'superadmin' };
     }
 
-    if (role === 'admin') {
-      const adminObj = data.admin || { username: 'admin', password: 'admin123', name: 'Principal' };
-      if (
-        (adminObj.username.toLowerCase() === idClean || 'admin' === idClean) &&
-        adminObj.password === passClean
-      ) {
-        login('admin', adminObj.name || 'Principal', null, null, adminObj.username);
-        return { success: true };
+    // 2. ── Admin / Principal Check ────────────────────────────────
+    const adminObj = data.admin || { username: 'admin', password: 'admin123', name: 'Principal' };
+    if (
+      (adminObj.username && adminObj.username.toLowerCase() === idClean) ||
+      idClean === 'admin'
+    ) {
+      if (adminObj.password === passClean) {
+        login('admin', adminObj.name || 'Principal', null, null, adminObj.username || 'admin');
+        return { success: true, role: 'admin' };
       }
-      return { success: false, error: 'Invalid admin username or password.' };
+      return { success: false, error: 'Incorrect password for principal account.' };
     }
 
-    if (role === 'teacher') {
-      const teacher = data.teachers.find(
-        (t) => (t.username && t.username.toLowerCase() === idClean) ||
-               (t.name && t.name.toLowerCase() === idClean) ||
-               (t.email && t.email.toLowerCase() === idClean)
-      );
-      if (!teacher) {
-        return { success: false, error: 'No teacher found with this username or name.' };
+    // 3. ── Teacher Check ──────────────────────────────────────────
+    const teacher = (data.teachers || []).find(
+      (t) => (t.username && t.username.toLowerCase() === idClean) ||
+             (t.name && t.name.toLowerCase() === idClean) ||
+             (t.email && t.email.toLowerCase() === idClean)
+    );
+    if (teacher) {
+      if (teacher.password === passClean) {
+        login('teacher', teacher.name, null, teacher.id, teacher.username);
+        return { success: true, role: 'teacher' };
       }
-      if (teacher.password && teacher.password !== passClean) {
-        return { success: false, error: 'Incorrect teacher password.' };
-      }
-      login('teacher', teacher.name, null, teacher.id, teacher.username);
-      return { success: true };
+      return { success: false, error: 'Incorrect password for teacher account.' };
     }
 
-    if (role === 'parent') {
-      const student = data.students.find(
-        (s) => (s.username && s.username.toLowerCase() === idClean) ||
-               (s.name && s.name.toLowerCase() === idClean) ||
-               (s.guardianPhone && s.guardianPhone.replace(/\D/g, '') === idClean.replace(/\D/g, ''))
-      );
-      if (!student) {
-        return { success: false, error: 'No student found with this username, name, or phone.' };
+    // 4. ── Student / Parent Check ─────────────────────────────────
+    const student = (data.students || []).find(
+      (s) => (s.username && s.username.toLowerCase() === idClean) ||
+             (s.name && s.name.toLowerCase() === idClean) ||
+             (s.id && s.id.toLowerCase() === idClean) ||
+             (s.guardianPhone && s.guardianPhone.replace(/\D/g, '') === idClean.replace(/\D/g, ''))
+    );
+    if (student) {
+      if (student.password === passClean) {
+        login('parent', student.name, student.id, null, student.username);
+        return { success: true, role: 'parent' };
       }
-      if (student.password && student.password !== passClean) {
-        return { success: false, error: 'Incorrect student/parent password.' };
-      }
-      login('parent', student.name, student.id, null, student.username);
-      return { success: true };
+      return { success: false, error: 'Incorrect password for student account.' };
     }
 
-    return { success: false, error: 'Invalid role selected.' };
+    return { success: false, error: 'No account found with this username or roll number.' };
   }, [data, login]);
 
   const logout = useCallback(() => {
