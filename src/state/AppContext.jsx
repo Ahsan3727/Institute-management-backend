@@ -55,10 +55,41 @@ export function AppProvider({ children }) {
   const [session, setSession] = useState(EMPTY_SESSION);
   const [ready, setReady] = useState(false);
   const [dbStatus, setDbStatus] = useState('syncing'); // 'connected' | 'syncing' | 'offline'
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [pendingSync, setPendingSync] = useState(false);
+
   const loadedOnce = useRef(false);
   const syncTimerRef = useRef(null);
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
-  // ---- load on mount (client only) ----
+  // ── Sync to Cloud Helper ────────────────────────────────────
+  const syncToCloud = useCallback(async (payloadData) => {
+    if (!payloadData) return false;
+    setDbStatus('syncing');
+    try {
+      const res = await fetch('/api/data', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: payloadData }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setDbStatus('connected');
+        setPendingSync(false);
+        return true;
+      }
+      setDbStatus('offline');
+      setPendingSync(true);
+      return false;
+    } catch (err) {
+      setDbStatus('offline');
+      setPendingSync(true);
+      return false;
+    }
+  }, []);
+
+  // ── Initial Load & Cloud Hydration ─────────────────────────
   useEffect(() => {
     const storedData = readJSON(STORAGE_KEY);
     const storedSession = readJSON(SESSION_KEY);
@@ -67,44 +98,72 @@ export function AppProvider({ children }) {
     loadedOnce.current = true;
     setReady(true);
 
-    // Fetch live MongoDB state
-    fetch('/api/data')
-      .then((res) => res.json())
-      .then((res) => {
-        if (res.ok && res.data) {
-          const normalized = normalizeData(res.data);
-          setData(normalized);
-          writeJSON(STORAGE_KEY, normalized);
-          setDbStatus('connected');
-        } else {
+    // Fetch live MongoDB state if online
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      fetch('/api/data')
+        .then((res) => res.json())
+        .then((res) => {
+          if (res.ok && res.data) {
+            const normalized = normalizeData(res.data);
+            setData(normalized);
+            writeJSON(STORAGE_KEY, normalized);
+            setDbStatus('connected');
+          } else {
+            setDbStatus('offline');
+          }
+        })
+        .catch((err) => {
+          console.warn('Offline fallback to local storage:', err);
           setDbStatus('offline');
-        }
-      })
-      .catch((err) => {
-        console.warn('MongoDB sync fallback to local storage:', err);
-        setDbStatus('offline');
-      });
+        });
+    } else {
+      setDbStatus('offline');
+    }
   }, []);
 
-  // ---- persist on change + background sync to MongoDB ----
+  // ── Auto-Sync Reconnection Listener ────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    function handleOnline() {
+      setIsOnline(true);
+      setDbStatus('syncing');
+      // When connection is restored, immediately flush pending changes to cloud
+      if (dataRef.current) {
+        syncToCloud(dataRef.current);
+      }
+    }
+
+    function handleOffline() {
+      setIsOnline(false);
+      setDbStatus('offline');
+    }
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [syncToCloud]);
+
+  // ── Persist on change (Local 0ms) + Debounced Cloud Sync ────
   useEffect(() => {
     if (!loadedOnce.current || !data) return;
+    // Immediate local persistence (100% offline-ready)
     writeJSON(STORAGE_KEY, data);
 
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     syncTimerRef.current = setTimeout(() => {
-      fetch('/api/data', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data }),
-      })
-        .then((r) => r.json())
-        .then((r) => {
-          if (r.ok) setDbStatus('connected');
-        })
-        .catch(() => setDbStatus('offline'));
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        syncToCloud(data);
+      } else {
+        setDbStatus('offline');
+        setPendingSync(true);
+      }
     }, 800);
-  }, [data]);
+  }, [data, syncToCloud]);
 
   useEffect(() => {
     if (!loadedOnce.current) return;
@@ -1006,6 +1065,9 @@ export function AppProvider({ children }) {
     () => ({
       ready,
       dbStatus,
+      isOnline,
+      pendingSync,
+      syncToCloud,
       data,
       session,
       login,

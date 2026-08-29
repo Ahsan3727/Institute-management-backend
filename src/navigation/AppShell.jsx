@@ -144,14 +144,14 @@ function DesktopSidebar({ tabs, tab, setTab, setTabParams, nav, session, dbStatu
           <span
             className={`h-2 w-2 rounded-full shrink-0 ${
               dbStatus === 'connected'
-                ? 'bg-[var(--green)] animate-pulse'
+                ? 'bg-emerald-500 animate-pulse'
                 : dbStatus === 'syncing'
-                ? 'bg-[var(--amber)] animate-ping'
-                : 'bg-[var(--sub)]'
+                ? 'bg-amber-500 animate-ping'
+                : 'bg-amber-500'
             }`}
           />
           <span className="truncate">
-            {dbStatus === 'connected' ? 'MongoDB Synced' : dbStatus === 'syncing' ? 'Syncing Cloud...' : 'Offline (Local)'}
+            {dbStatus === 'connected' ? '🟢 MongoDB Synced' : dbStatus === 'syncing' ? '🔄 Syncing Cloud...' : '⚠️ Offline (Saved Locally)'}
           </span>
         </div>
       )}
