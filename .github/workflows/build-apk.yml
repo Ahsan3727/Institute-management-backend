@@ -16,12 +16,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
 
-      - name: Install Node Dependencies
-        run: npm ci --legacy-peer-deps || npm install
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
 
-      - name: Build Web Assets
+      - name: Build Web Application
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          MONGODB_URI: "mongodb://localhost:27017/institute_management"
         run: npm run build
 
       - name: Setup Java JDK 17
@@ -33,13 +35,13 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Sync Capacitor Android
+      - name: Sync Capacitor Android Assets
         run: npx cap sync android
 
-      - name: Make Gradle Executable
+      - name: Make Gradle Wrapper Executable
         run: chmod +x ./android/gradlew
 
-      - name: Build Android APK
+      - name: Compile Android APK
         run: |
           cd android
           ./gradlew assembleDebug --no-daemon

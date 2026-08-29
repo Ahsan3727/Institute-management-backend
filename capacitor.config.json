@@ -1,7 +1,7 @@
 {
   "appId": "com.pakscienceacademy.app",
   "appName": "Pak Science Academy",
-  "webDir": "out",
+  "webDir": "public",
   "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https",
