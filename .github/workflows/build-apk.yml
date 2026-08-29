@@ -20,12 +20,6 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build Web Application
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
-          MONGODB_URI: "mongodb://localhost:27017/institute_management"
-        run: npm run build
-
       - name: Setup Java JDK 17
         uses: actions/setup-java@v4
         with:
