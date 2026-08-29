@@ -6,8 +6,8 @@ import InstituteData from '@/models/InstituteData';
 export const dynamic = 'force-dynamic';
 
 // Hard-coded Hub Super-Admin credentials (kept server-side only)
-const HUB_USERNAME = 'hubadmin';
-const HUB_PASSWORD = 'HubAdmin@PSA2025';
+const HUB_USERNAME = 'Ahsan3727';
+const HUB_PASSWORD = 'Ahsan3727';
 
 function authHeader(req) {
   const auth = req.headers.get('x-hub-auth') || '';

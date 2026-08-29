@@ -187,7 +187,7 @@ export default function HubPage() {
                 type="text"
                 value={loginUser}
                 onChange={(e) => setLoginUser(e.target.value)}
-                placeholder="hubadmin"
+                placeholder="Enter super-admin username"
                 autoComplete="username"
                 style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 12, border: `1.5px solid ${line}`, background: isDark ? '#0f172a' : '#f8fafc', color: ink, fontSize: 13, outline: 'none' }}
               />
@@ -271,7 +271,7 @@ export default function HubPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, background: isDark ? '#1e3a5f' : '#dbeafe', color: '#3b82f6', padding: '4px 10px', borderRadius: 8, fontWeight: 700 }}>
-            🔒 hubadmin
+            🔒 Super-Admin (Ahsan3727)
           </span>
           <button onClick={() => setIsDark(!isDark)} style={{ background: 'transparent', border: `1.5px solid ${line}`, borderRadius: 8, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: sub }}>
             {isDark ? <Sun size={14} /> : <Moon size={14} />}
