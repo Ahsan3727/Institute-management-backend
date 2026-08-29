@@ -29,16 +29,16 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Make Gradle Wrapper Executable
-        run: chmod +x ./android/gradlew || true
+      - name: Copy Web Assets to Android
+        run: npx cap copy android
 
-      - name: Sync Capacitor Android Assets
-        run: npx cap sync android
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x ./android/gradlew
 
       - name: Compile Android APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
