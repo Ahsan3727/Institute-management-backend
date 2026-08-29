@@ -22,12 +22,12 @@ export async function GET() {
     let record = await InstituteData.findOne({ identifier: 'primary_institute' });
 
     if (!record) {
-      const initial = seedData();
+      const initial = emptyData();
       record = await InstituteData.create({
         identifier: 'primary_institute',
         ...initial,
       });
-      return NextResponse.json({ ok: true, data: initial, source: 'mongodb_seeded' });
+      return NextResponse.json({ ok: true, data: initial, source: 'mongodb_initialized' });
     }
 
     const data = sanitizeDocument(record);

@@ -106,17 +106,18 @@ function DesktopSidebar({ tabs, tab, setTab, setTabParams, nav, session, dbStatu
       style={{ minHeight: '100vh' }}
     >
       {/* Logo / School name */}
-      <div className={`flex items-center gap-2.5 px-3 py-4 border-b border-[var(--line)] ${collapsed ? 'justify-center' : ''}`}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--role)] text-white font-black text-[13px]">
-          SLO
+      <div className={`flex items-center gap-2.5 px-3 py-3 border-b border-[var(--line)] ${collapsed ? 'justify-center' : ''}`}>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-[var(--line)]">
+          <img src="/logo.png" alt="PSA" className="h-9 w-9 object-contain" />
         </div>
         {!collapsed && (
-          <div>
-            <p className="text-[12.5px] font-extrabold text-[var(--ink)] leading-none">SLO Tracker</p>
+          <div className="min-w-0">
+            <p className="text-[12px] font-extrabold text-[var(--ink)] leading-tight truncate">Pak Science Academy</p>
             <p className="text-[10px] text-[var(--sub)] mt-0.5 capitalize">{session.role} Portal</p>
           </div>
         )}
       </div>
+
 
       {/* Cloud Sync Status Indicator */}
       {!collapsed && (
@@ -304,14 +305,19 @@ function ShellInner() {
           <div className={`flex flex-1 flex-col w-full ${!showSidebar ? 'md:mx-auto md:max-w-lg md:my-4 md:rounded-[28px] md:border md:border-[var(--line)] md:shadow-2xl md:overflow-hidden' : ''}`}>
 
             {/* Header */}
-            <header className="sticky top-0 z-30 flex items-center justify-between bg-[var(--role)] px-4 py-3.5">
+            <header className="sticky top-0 z-30 flex items-center justify-between bg-[var(--role)] px-4 py-3">
               <div className="flex min-w-0 items-center gap-2">
                 {activeOverlay ? (
                   <button type="button" onClick={nav.goBack} className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-white">
                     <ChevronLeft size={18} />
                   </button>
-                ) : null}
-                <h1 className="truncate text-[16px] font-bold text-white">{headerTitle}</h1>
+                ) : (
+                  /* PSA Logo — only on mobile (sidebar handles desktop) */
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/90 md:hidden">
+                    <img src="/logo.png" alt="PSA" className="h-6 w-6 object-contain" />
+                  </div>
+                )}
+                <h1 className="truncate text-[15px] font-bold text-white">{headerTitle}</h1>
               </div>
               <HeaderActions />
             </header>
