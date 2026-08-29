@@ -46,6 +46,12 @@
   --role-dark: #0a6b3e;
   --role-bg: #e7f8ef;
 }
+[data-role='superadmin'],
+[data-role='super-admin'] {
+  --role: #12355A;
+  --role-dark: #0c233c;
+  --role-bg: #e6eef7;
+}
 
 [data-theme='dark'][data-role='teacher'] {
   --role-bg: #241a3d;
@@ -55,6 +61,10 @@
 }
 [data-theme='dark'][data-role='admin'] {
   --role-bg: #122a20;
+}
+[data-theme='dark'][data-role='superadmin'],
+[data-theme='dark'][data-role='super-admin'] {
+  --role-bg: #112233;
 }
 
 html,

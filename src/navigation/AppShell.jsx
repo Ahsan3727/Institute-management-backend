@@ -33,14 +33,23 @@ import AdminTeachersScreen from '@/screens/admin/TeachersScreen';
 import AdminStudentsScreen from '@/screens/admin/StudentsScreen';
 import AdminReportsScreen from '@/screens/admin/ReportsScreen';
 import AdminExamsScreen from '@/screens/admin/ExamsScreen';
+import HubScreen from '@/screens/admin/HubScreen';
 
 import MoreScreen from '@/screens/shared/MoreScreen';
 import SetupScreen from '@/screens/shared/SetupScreen';
 import MissedSLOsScreen from '@/screens/shared/MissedSLOsScreen';
 import DailyLogScreen from '@/screens/shared/DailyLogScreen';
 import FinanceScreen from '@/screens/admin/FinanceScreen';
+import { ShieldCheck } from 'lucide-react';
 
 const TAB_CONFIG = {
+  superadmin: [
+    { name: 'Hub',       icon: ShieldCheck,   component: HubScreen,           title: 'Super-Admin Hub' },
+    { name: 'Dashboard', icon: Home,          component: AdminDashboard,      title: 'Academy Dashboard' },
+    { name: 'Teachers',  icon: Users,         component: AdminTeachersScreen, title: 'Teachers' },
+    { name: 'Students',  icon: GraduationCap, component: AdminStudentsScreen, title: 'Students' },
+    { name: 'More',      icon: Menu,          component: MoreScreen,          title: 'More' },
+  ],
   teacher: [
     { name: 'Dashboard', icon: Home,      component: TeacherDashboard,       title: 'Dashboard' },
     { name: 'SLOs',      icon: BookOpen,  component: TeacherSLOsScreen,      title: 'SLOs' },
@@ -65,6 +74,7 @@ const TAB_CONFIG = {
 };
 
 const OVERLAY_SCREENS = {
+  Hub:      { component: HubScreen,          title: 'Super-Admin Hub' },
   Setup:    { component: SetupScreen,        title: 'Setup' },
   Missed:   { component: MissedSLOsScreen,   title: 'Missed SLOs' },
   DailyLog: { component: DailyLogScreen,     title: 'Daily Activity Log' },
@@ -76,6 +86,15 @@ const OVERLAY_SCREENS = {
 };
 
 // Desktop sidebar links — shown in collapsed sidebar beyond the main tabs
+const SUPERADMIN_SIDEBAR_EXTRA = [
+  { label: 'Hub Control', icon: ShieldCheck, screen: 'Hub' },
+  { label: 'Finance',     icon: Wallet,      screen: 'Finance' },
+  { label: 'Exams',       icon: Award,       screen: 'Exams' },
+  { label: 'Reports',     icon: BarChart2,   screen: 'Reports' },
+  { label: 'Setup',       icon: Settings,    screen: 'Setup' },
+  { label: 'Activity',    icon: List,        screen: 'DailyLog' },
+  { label: 'Missed',      icon: AlertTriangle, screen: 'Missed' },
+];
 const ADMIN_SIDEBAR_EXTRA = [
   { label: 'Reports',  icon: BarChart2,     screen: 'Reports' },
   { label: 'Exams',    icon: Award,         screen: 'Exams' },
@@ -99,7 +118,7 @@ export function useNav() {
 
 // ── Desktop Sidebar ───────────────────────────────────────────────────────────
 function DesktopSidebar({ tabs, tab, setTab, setTabParams, nav, session, dbStatus, isDark, toggleTheme, logout, collapsed, setCollapsed }) {
-  const extraLinks = session.role === 'admin' ? ADMIN_SIDEBAR_EXTRA : TEACHER_SIDEBAR_EXTRA;
+  const extraLinks = session.role === 'superadmin' ? SUPERADMIN_SIDEBAR_EXTRA : session.role === 'admin' ? ADMIN_SIDEBAR_EXTRA : TEACHER_SIDEBAR_EXTRA;
   return (
     <aside
       className={`hidden md:flex flex-col border-r border-[var(--line)] bg-[var(--paper)] transition-all duration-200 ${collapsed ? 'w-[64px]' : 'w-[220px]'} shrink-0`}
@@ -273,7 +292,7 @@ function ShellInner() {
   const activeOverlay = overlay ? OVERLAY_SCREENS[overlay.name] : null;
   const headerTitle = activeOverlay ? activeOverlay.title : activeTabCfg.title;
 
-  const showSidebar = session.role === 'teacher' || session.role === 'admin';
+  const showSidebar = session.role === 'teacher' || session.role === 'admin' || session.role === 'superadmin';
 
   return (
     <NavContext.Provider value={nav}>

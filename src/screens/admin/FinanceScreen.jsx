@@ -20,7 +20,7 @@ const STATUS_PILL = { paid: ['teach', 'Paid'], partial: ['revise', 'Partial'], p
 export default function FinanceScreen() {
   const { session } = useApp();
 
-  if (session.role !== 'admin') {
+  if (session.role !== 'admin' && session.role !== 'superadmin') {
     return (
       <ScreenBody>
         <Card title="Restricted Access">
