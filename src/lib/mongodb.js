@@ -1,8 +1,19 @@
 import mongoose from 'mongoose';
 
-const DEFAULT_URI = 'mongodb://Ahsan3727:%23Ahsan3145673727@ac-75haq23-shard-00-00.slngj0l.mongodb.net:27017,ac-75haq23-shard-00-01.slngj0l.mongodb.net:27017,ac-75haq23-shard-00-02.slngj0l.mongodb.net:27017/institute_management?ssl=true&replicaSet=atlas-oi643h-shard-0&authSource=admin&appName=jewellerycalc';
+// SECURITY: There is intentionally no hardcoded fallback connection string.
+// The previous version of this file shipped a live Atlas credential in the
+// repo (and therefore in the deployed serverless bundle). That credential
+// must be rotated in Atlas — deleting this fallback does not undo the
+// exposure on its own. See Remediation-Plan.md Phase 0.
+const MONGODB_URI = process.env.MONGODB_URI;
 
-const MONGODB_URI = process.env.MONGODB_URI || DEFAULT_URI;
+if (!MONGODB_URI) {
+  throw new Error(
+    'MONGODB_URI environment variable is not set. Add it to .env.local for ' +
+      'local development, or to your Vercel project\'s Environment Variables ' +
+      'for deployments. Refusing to start with no configured database.'
+  );
+}
 
 let cached = global.mongoose;
 
